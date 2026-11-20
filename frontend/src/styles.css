@@ -1,0 +1,212 @@
+/* ============================================================
+   Jàngal design system — warm Senegalese teranga palette.
+   Mobile-first, system fonts (no webfont download), big touch
+   targets, high contrast, works on mid-range Androids.
+   ============================================================ */
+:root {
+  --green-900: #073D2B;
+  --green-700: #0B6E4F;
+  --green-600: #0F8A63;
+  --green-100: #DCEFE6;
+  --orange-600: #E86A33;
+  --orange-500: #F08A4B;
+  --amber-700: #9C6B1A;
+  --amber-100: #FCF1DC;
+  --red-600: #C43D3D;
+  --red-100: #FBE4E4;
+  --cream: #FAF6EF;
+  --card: #FFFFFF;
+  --ink: #1C2B24;
+  --ink-soft: #5C6B62;
+  --line: #E7DFD1;
+  --radius: 16px;
+  --shadow: 0 1px 2px rgba(28, 43, 36, 0.06), 0 6px 18px rgba(28, 43, 36, 0.06);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { font-size: 16px; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  line-height: 1.5;
+}
+#root { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ---------- header ---------- */
+.app-header {
+  background: linear-gradient(135deg, var(--green-900), var(--green-700));
+  color: #fff;
+  padding: 14px 18px 0;
+  position: sticky; top: 0; z-index: 30;
+  box-shadow: var(--shadow);
+}
+.app-header .row { display: flex; align-items: center; gap: 12px; max-width: 1020px; margin: 0 auto; width: 100%; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand svg { width: 38px; height: 38px; flex: none; }
+.brand .name { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.02em; }
+.brand .who { font-size: 0.78rem; opacity: 0.85; margin-top: -3px; }
+.spacer { flex: 1; }
+.lang-switch { display: flex; background: rgba(255,255,255,0.14); border-radius: 999px; padding: 3px; }
+.lang-switch button {
+  border: 0; background: transparent; color: #fff; font-size: 0.8rem; font-weight: 700;
+  padding: 5px 11px; border-radius: 999px; cursor: pointer;
+}
+.lang-switch button.on { background: #fff; color: var(--green-700); }
+.icon-btn {
+  border: 0; background: rgba(255,255,255,0.14); color: #fff; border-radius: 12px;
+  padding: 8px 12px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.25); }
+
+/* ---------- nav ---------- */
+.tab-nav {
+  display: flex; gap: 4px; max-width: 1020px; margin: 10px auto 0; width: 100%;
+  overflow-x: auto; scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-nav button {
+  border: 0; background: transparent; color: rgba(255,255,255,0.75);
+  font-size: 0.92rem; font-weight: 700; padding: 10px 14px; cursor: pointer;
+  border-bottom: 3px solid transparent; white-space: nowrap;
+}
+.tab-nav button.on { color: #fff; border-bottom-color: var(--orange-500); }
+
+/* ---------- layout ---------- */
+.page { flex: 1; width: 100%; max-width: 1020px; margin: 0 auto; padding: 20px 16px 90px; }
+.hero {
+  background: var(--card); border-radius: var(--radius); padding: 18px 20px;
+  box-shadow: var(--shadow); border: 1px solid var(--line); margin-bottom: 18px;
+}
+.hero h1 { margin: 0 0 4px; font-size: 1.25rem; }
+.hero p { margin: 0; color: var(--ink-soft); font-size: 0.95rem; }
+.grid { display: grid; gap: 14px; }
+@media (min-width: 720px) { .grid.two { grid-template-columns: 1fr 1fr; } .grid.three { grid-template-columns: repeat(3, 1fr); } }
+
+.card {
+  background: var(--card); border-radius: var(--radius); border: 1px solid var(--line);
+  box-shadow: var(--shadow); padding: 16px 18px;
+}
+.card h3 { margin: 0 0 10px; font-size: 1.02rem; }
+.section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); margin: 22px 2px 10px; font-weight: 700; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 0; border-radius: 14px; padding: 13px 20px; min-height: 48px;
+  font-size: 1rem; font-weight: 800; cursor: pointer; width: 100%;
+  transition: transform 0.06s ease, filter 0.15s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn.primary { background: var(--green-700); color: #fff; }
+.btn.primary:hover { background: var(--green-600); }
+.btn.accent { background: var(--orange-600); color: #fff; }
+.btn.accent:hover { background: var(--orange-500); }
+.btn.danger { background: var(--red-100); color: var(--red-600); }
+.btn.ghost { background: transparent; border: 2px solid var(--line); color: var(--ink); }
+.btn.sm { padding: 9px 14px; min-height: 40px; font-size: 0.9rem; width: auto; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ---------- badges & statuses ---------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 800;
+  padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.badge.awaiting_payment, .badge.awaiting { background: var(--line); color: var(--ink-soft); }
+.badge.locked { background: var(--amber-100); color: var(--amber-700); }
+.badge.settled { background: var(--green-100); color: var(--green-700); }
+.badge.refunded, .badge.canceled { background: var(--red-100); color: var(--red-600); }
+.badge .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 1.6s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ---------- fee cards ---------- */
+.fee-card { display: flex; flex-direction: column; gap: 8px; }
+.fee-card .top { display: flex; align-items: flex-start; gap: 10px; }
+.fee-card .who { font-weight: 800; }
+.fee-card .sub { color: var(--ink-soft); font-size: 0.88rem; }
+.fee-card .amount { margin-left: auto; text-align: right; }
+.fee-card .amount .xof { font-weight: 800; font-size: 1.05rem; white-space: nowrap; }
+.fee-card .amount .sat { color: var(--ink-soft); font-size: 0.8rem; }
+.fee-actions { display: flex; gap: 10px; margin-top: 6px; }
+.fee-actions .btn { width: auto; flex: 1; }
+
+/* ---------- forms ---------- */
+label.f { display: block; margin-bottom: 12px; }
+label.f span { display: block; font-size: 0.82rem; font-weight: 700; color: var(--ink-soft); margin-bottom: 5px; }
+input.f, select.f, textarea.f {
+  width: 100%; padding: 12px 14px; border: 2px solid var(--line); border-radius: 12px;
+  font-size: 1rem; background: #fff; color: var(--ink); font-family: inherit;
+}
+input.f:focus, select.f:focus, textarea.f:focus { outline: none; border-color: var(--green-600); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ---------- misc ---------- */
+.bigstat { text-align: center; padding: 10px 4px; }
+.bigstat .n { font-size: 1.9rem; font-weight: 800; color: var(--green-700); }
+.bigstat .l { font-size: 0.8rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
+.notif { display: flex; gap: 10px; padding: 12px 4px; border-bottom: 1px solid var(--line); font-size: 0.92rem; }
+.notif:last-child { border-bottom: 0; }
+.notif .time { color: var(--ink-soft); font-size: 0.76rem; white-space: nowrap; }
+.qr-wrap { display: flex; justify-content: center; padding: 12px; background: #fff; border-radius: 12px; border: 1px solid var(--line); }
+.invoice-str {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.62rem; word-break: break-all;
+  background: var(--cream); border-radius: 10px; padding: 10px; color: var(--ink-soft);
+}
+.toast {
+  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+  background: var(--green-900); color: #fff; padding: 13px 22px; border-radius: 14px;
+  font-weight: 700; box-shadow: var(--shadow); z-index: 90; animation: rise 0.25s ease; font-size: 0.95rem;
+  max-width: min(92vw, 480px); text-align: center;
+}
+@keyframes rise { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* ---------- login ---------- */
+.login-wrap { max-width: 460px; margin: 6vh auto; padding: 0 16px; }
+.login-logo { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 22px; text-align: center; }
+.login-logo svg { width: 74px; height: 74px; }
+.persona {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  background: var(--card); border: 2px solid var(--line); border-radius: 16px;
+  padding: 14px 16px; margin-bottom: 12px; cursor: pointer; font-family: inherit;
+}
+.persona:hover { border-color: var(--green-600); }
+.persona .avatar {
+  width: 46px; height: 46px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 1.1rem;
+}
+.persona .p-name { font-weight: 800; font-size: 1rem; color: var(--ink); }
+.persona .p-sub { font-size: 0.83rem; color: var(--ink-soft); }
+.persona .p-code { margin-left: auto; font-family: ui-monospace, monospace; background: var(--green-100); color: var(--green-700); border-radius: 8px; padding: 4px 8px; font-weight: 800; font-size: 0.9rem; }
+
+/* ---------- assistant ---------- */
+.assistant-fab {
+  position: fixed; right: 16px; bottom: 16px; width: 56px; height: 56px; border-radius: 50%;
+  background: var(--orange-600); color: #fff; border: 0; font-size: 1.5rem; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(232, 106, 51, 0.45); z-index: 60;
+}
+.assistant-panel {
+  position: fixed; right: 12px; bottom: 84px; width: min(94vw, 380px); height: 480px; max-height: 70vh;
+  background: var(--card); border-radius: 20px; border: 1px solid var(--line);
+  box-shadow: 0 12px 40px rgba(28,43,36,0.22); display: flex; flex-direction: column; z-index: 60; overflow: hidden;
+}
+.assistant-panel header {
+  background: var(--green-700); color: #fff; padding: 12px 16px; font-weight: 800; font-size: 0.95rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.assistant-panel .msgs { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.msg { max-width: 85%; padding: 10px 12px; border-radius: 14px; font-size: 0.9rem; white-space: pre-wrap; }
+.msg.user { align-self: flex-end; background: var(--green-700); color: #fff; border-bottom-right-radius: 4px; }
+.msg.bot { align-self: flex-start; background: var(--cream); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.assistant-panel .askrow { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); }
+.assistant-panel input { flex: 1; }
+.assistant-panel .askrow .btn { width: auto; padding: 10px 14px; }
+
+/* ---------- receipts ---------- */
+.receipt-item { border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; background: #fff; }
+.receipt-item .valid { font-weight: 800; font-size: 0.85rem; display: flex; gap: 6px; align-items: center; }
+.mono { font-family: ui-monospace, monospace; font-size: 0.78rem; word-break: break-all; color: var(--ink-soft); }
+footer.app-footer { text-align: center; color: var(--ink-soft); font-size: 0.78rem; padding: 18px; }
+.hint { background: var(--amber-100); border-radius: 12px; padding: 12px 14px; font-size: 0.9rem; color: #7A5410; margin: 10px 0; }
+.hint.green { background: var(--green-100); color: var(--green-900); }
+.skeleton { background: linear-gradient(90deg, #f1ece1 25%, #faf6ef 50%, #f1ece1 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 12px; height: 84px; }
+@keyframes shimmer { to { background-position: -200% 0; } }

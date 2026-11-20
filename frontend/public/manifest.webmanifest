@@ -1,0 +1,13 @@
+{
+  "name": "Jàngal — Frais de scolarité sur Lightning",
+  "short_name": "Jàngal",
+  "description": "School fees locked on Lightning. Money that can only become education.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF6EF",
+  "theme_color": "#0B6E4F",
+  "lang": "fr",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

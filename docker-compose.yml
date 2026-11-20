@@ -1,0 +1,138 @@
+# Jàngal — purpose-locked school fee payments on Lightning
+# One command demo:  docker compose up --build
+#
+# Network: regtest. Nodes: bitcoind + LND (school) + LND (parent) + app.
+# The app container seeds wallets, opens the payment channel and mines
+# the confirmations automatically on first boot.
+
+services:
+  bitcoind:
+    image: btcpayserver/bitcoind:27.1
+    container_name: jangal-bitcoind
+    command:
+      - -regtest=1
+      - -txindex=1
+      - -rpcuser=jangal
+      - -rpcpassword=jangal
+      - -rpcbind=0.0.0.0:18443
+      - -rpcallowip=0.0.0.0/0
+      - -fallbackfee=0.0002
+      - -zmqpubrawblock=tcp://0.0.0.0:28332
+      - -zmqpubrawtx=tcp://0.0.0.0:28333
+    ports:
+      - "18443:18443"
+    healthcheck:
+      test: ["CMD", "bitcoin-cli", "-regtest", "-rpcuser=jangal", "-rpcpassword=jangal", "getblockchaininfo"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+    networks:
+      - jangal
+
+  lnd-school:
+    image: lightninglabs/lnd:v0.18.3-beta
+    container_name: jangal-lnd-school
+    command:
+      - --listen=0.0.0.0:9735
+      - --externalip=lnd-school
+      - --rpclisten=0.0.0.0:10009
+      - --restlisten=0.0.0.0:8080
+      - --bitcoin.active
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoind.rpchost=bitcoind:18443
+      - --bitcoind.rpcuser=jangal
+      - --bitcoind.rpcpass=jangal
+      - --bitcoind.zmqpubrawblock=bitcoind:28332
+      - --bitcoind.zmqpubrawtx=bitcoind:28333
+      - --protocol.wumbo-channels
+      - --maxpendingchannels=10
+      - --lnddir=/root/.lnd
+      - --tlsextraip=lnd-school
+      - --tlsextradomain=lnd-school
+      - --tlsextraip=jangal-lnd-school
+      - --no-macaroons
+    depends_on:
+      bitcoind:
+        condition: service_healthy
+    ports:
+      - "8081:8080"   # REST (host mapping for debugging)
+      - "9735:9735"
+    volumes:
+      - lnd_school:/root/.lnd
+    networks:
+      - jangal
+    restart: on-failure
+
+  lnd-parent:
+    image: lightninglabs/lnd:v0.18.3-beta
+    container_name: jangal-lnd-parent
+    command:
+      - --nolisten
+      - --rpclisten=0.0.0.0:10009
+      - --restlisten=0.0.0.0:8080
+      - --bitcoin.active
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoind.rpchost=bitcoind:18443
+      - --bitcoind.rpcuser=jangal
+      - --bitcoind.rpcpass=jangal
+      - --bitcoind.zmqpubrawblock=bitcoind:28332
+      - --bitcoind.zmqpubrawtx=bitcoind:28333
+      - --protocol.wumbo-channels
+      - --maxpendingchannels=10
+      - --lnddir=/root/.lnd
+      - --tlsextraip=lnd-parent
+      - --tlsextradomain=lnd-parent
+      - --tlsextraip=jangal-lnd-parent
+      - --no-macaroons
+    depends_on:
+      bitcoind:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
+    volumes:
+      - lnd_parent:/root/.lnd
+    networks:
+      - jangal
+    restart: on-failure
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    container_name: jangal-app
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      LND_SCHOOL_REST: "https://lnd-school:8080"
+      LND_SCHOOL_MACAROON: ""
+      LND_PARENT_REST: "https://lnd-parent:8080"
+      LND_PARENT_MACAROON: ""
+      BITCOIND_HOST: "bitcoind"
+      BITCOIND_RPCPORT: "18443"
+      BITCOIND_RPCUSER: "jangal"
+      BITCOIND_RPCPASS: "jangal"
+      RATE_XOF_PER_SAT: "0.85"        # 1 sat ≈ 0.85 XOF (see docs/impact.md for derivation)
+      AI_PROVIDER: "mock"             # mock | openai-compatible
+      AI_BASE_URL: ""
+      AI_MODEL: ""
+      AI_API_KEY: ""
+      JWT_SECRET: "jangal-demo-secret-change-me"
+      SEED_ON_BOOT: "1"
+    depends_on:
+      - lnd-school
+      - lnd-parent
+    ports:
+      - "3000:3000"
+    networks:
+      - jangal
+    restart: on-failure
+
+volumes:
+  lnd_school:
+  lnd_parent:
+
+networks:
+  jangal:
+    name: jangal

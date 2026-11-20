@@ -1,0 +1,101 @@
+# Devpost submission text (copy-paste ready)
+
+## Title
+
+**Jàngal — School fees on Lightning: money that can only become education**
+
+## One-liner
+
+Frais de scolarité verrouillés sur le Lightning Network : la diaspora paie,
+les fonds restent bloqués dans un HTLC, et ne sont versés à l'école que
+lorsqu'elle confirme la scolarisation — sinon remboursement automatique.
+Reçus signés sur Nostr. UI en wolof, français et anglais.
+
+## Description
+
+### The problem
+
+In Senegal, education is the largest family expense after food, and a huge
+share of school fees is paid by the diaspora (23% of households receive
+remittances; traditional transfers cost 7–10%). Today that money travels
+through middlemen and cash. Receipts can be faked. Money sent "for school"
+does not always become school.
+
+### The solution
+
+**Jàngal** (Wolof: "to educate") is a purpose-locked payment rail:
+
+1. **The school creates the fee invoice** — or pastes the fee note and our AI
+   parses student, class, term and amount (FCFA and sats both shown).
+2. **The diaspora parent pays in sats** — funds are locked in a **Lightning
+   hold invoice** (HTLC). Nobody can claim them yet.
+3. **The school confirms enrolment with one tap** — the invoice settles, the
+   school is paid in seconds.
+4. **A Nostr-signed receipt is published** (kind 30078) — verifiable forever
+   by anyone, with student names masked to initials for privacy.
+5. **If the school never confirms** — the HTLC fails and the money returns to
+   the parent **automatically**. Escrow by Lightning math, not by a custodian.
+
+### What's real (regtest, one command)
+
+- Full stack: bitcoind + 2 LND nodes + Fastify app — `docker compose up --build`
+- Real hold-invoice lifecycle: `AddHoldInvoice` → payment locked →
+  `SettleInvoice` / `CancelInvoice` with automatic refunds
+- Real Nostr: school keys, signed receipt events, **embedded relay** (ws://…/nostr),
+  signature verification in the UI
+- Lightning wallet implementation for both sides (parent & school nodes,
+  BOLT11 QR payable by any wallet)
+- AI: fee-note parsing + trilingual (wo/fr/en) assistant — deterministic mock
+  provider by default, any OpenAI-compatible LLM via env vars
+- PWA, mobile-first, **63 KB gzipped**, no external fonts/assets — built for
+  low bandwidth and mid-range Androids
+- 15-assertion E2E smoke test covering happy path, refund path, receipts and AI
+
+### Wolof first
+
+The UI ships in **Wolof, Français and English**. Family notifications are
+drafted in Wolof (with a simulated SMS gateway panel — the integration point
+for Orange SMS API is one adapter away).
+
+### Impact
+
+One Dakar private school of 300 students moves ≈ 40 M FCFA/year in fees.
+Parents save 7–10% versus money-transfer operators; schools settle instantly
+with a reconciliation ledger; families hold receipts nobody can forge.
+Metrics tracked live in-app: sats-for-education, fees settled/refunded,
+time-to-confirmation. Sources in docs/impact.md.
+
+### Security by design
+
+- The app **never holds funds or wallet keys** — money moves only as HTLCs
+  between the parent's and school's Lightning nodes
+- Compromise of the server degrades service; it cannot redirect money
+  (settle only with the fee-bound preimage; cancel only triggers refunds)
+- Full threat model: docs/threat-model.md (CSRF, XSS/CSP, rate limits,
+  preimage binding, PII masking, demo-vs-production trade-offs documented)
+
+### Team
+
+[fill in team members — residents of Africa, students as per eligibility]
+
+### Built with
+
+Bitcoin (regtest), LND hold invoices, Nostr (nostr-tools, NIP-01/30078,
+embedded relay), Fastify, SQLite, React PWA (Vite), AI (OpenAI-compatible
+adapter: GLM/GPT/Groq or deterministic mock), Docker Compose.
+
+### Links
+
+- Repo: [public GitHub URL]
+- Live demo: [hosted URL — Render/Fly, ALLOW_MINING disabled]
+- Video: [3-min demo URL]
+
+## Submission checklist (before Nov 20, 8:00 PM UTC)
+
+- [ ] Public GitHub repo (rules require it) — MIT LICENSE, README
+- [ ] MVP accessible online (hosted demo) or demo video (both if possible)
+- [ ] Presentation: this text + video
+- [ ] Team members added on Devpost (students residing in Africa)
+- [ ] Like/comment on other projects (community goodwill, and 2025 winners
+      correlated with community engagement)
+- [ ] Post the project in the hackathon Discord/WhatsApp + X with a 30-sec clip
