@@ -33,6 +33,17 @@ export const api = {
   aiAsk: (question, locale, history) => req("POST", "/ai/ask", { question, locale, history }),
   uploadProof: (id, imageBase64, mime) => req("POST", `/fees/${id}/proof`, { imageBase64, mime }),
   proof: (id) => req("GET", `/fees/${id}/proof`),
+  schoolStats: () => req("GET", "/school/stats"),
   expire: (id) => req("POST", `/dev/expire/${id}`, {}),
   mine: (blocks) => req("POST", "/dev/mine", { blocks }),
+};
+
+// public (no-auth) endpoints use absolute /api paths
+export const publicApi = {
+  verifyReceipt: async (feeId) => {
+    const res = await fetch(`/api/public/receipt/${encodeURIComponent(feeId)}`);
+    let json = null;
+    try { json = await res.json(); } catch { /* ignore */ }
+    return { status: res.status, json };
+  },
 };

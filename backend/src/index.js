@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
 import { attachRelay } from "./nostr.js";
 import { registerRoutes } from "./routes/api.js";
+import { registerPublicRoutes } from "./routes/public.js";
 import { seed } from "./seed.js";
 import { db, q } from "./db.js";
 
@@ -40,9 +41,18 @@ attachRelay(app);
 
 // API
 registerRoutes(app);
+registerPublicRoutes(app); // unauthenticated receipt verifier (public trust)
 
+const startedAt = Date.now();
 // health
-app.get("/api/health", async () => ({ ok: true, app: "jangal", version: "1.0.0" }));
+app.get("/api/health", async () => ({
+  ok: true,
+  app: "jangal",
+  version: "1.1.0",
+  uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
+  network: process.env.LND_MODE === "mock" ? "mock" : "regtest",
+  node: process.version,
+}));
 
 // ---------------- static frontend (SPA) ----------------
 const publicDir = path.resolve(__dirname, "../public");

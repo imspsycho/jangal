@@ -154,6 +154,7 @@ export const q = {
   feesByGuardian: db.prepare("SELECT f.*, s.name AS student_name, sc.name AS school_name FROM fees f JOIN students s ON s.id = f.student_id JOIN schools sc ON sc.id = f.school_id WHERE s.guardian_user_id = ? ORDER BY f.created_at DESC"),
   updateFeeStatus: db.prepare("UPDATE fees SET status = ?, paid_at = COALESCE(?, paid_at), confirmed_at = COALESCE(?, confirmed_at), nostr_event_id = COALESCE(?, nostr_event_id) WHERE id = ?"),
   feeStats: db.prepare(`SELECT status, COUNT(*) n, COALESCE(SUM(amount_sat),0) sat, COALESCE(SUM(amount_xof),0) xof FROM fees GROUP BY status`),
+  feeStatsAllFees: db.prepare("SELECT * FROM fees"),
 
   // payments
   insertPayment: db.prepare("INSERT INTO payments (id, fee_id, payer_user_id, amount_sat, state) VALUES (?,?,?,?,?)"),

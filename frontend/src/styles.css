@@ -210,3 +210,17 @@ footer.app-footer { text-align: center; color: var(--ink-soft); font-size: 0.78r
 .hint.green { background: var(--green-100); color: var(--green-900); }
 .skeleton { background: linear-gradient(90deg, #f1ece1 25%, #faf6ef 50%, #f1ece1 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 12px; height: 84px; }
 @keyframes shimmer { to { background-position: -200% 0; } }
+
+/* ---------- public verifier ---------- */
+.verify-wrap { min-height: 100vh; display: flex; flex-direction: column; }
+.verify-header {
+  display: flex; align-items: center; gap: 10px; padding: 14px 18px;
+  border-bottom: 1px solid var(--line); background: var(--card); position: sticky; top: 0; z-index: 40;
+}
+.verify-header .name { font-weight: 800; font-size: 1.05rem; color: var(--ink); }
+.verify-header .who { font-size: 0.78rem; color: var(--ink-soft); }
+.verify-check {
+  display: flex; align-items: baseline; gap: 10px; padding: 9px 0;
+  border-bottom: 1px dashed var(--line); font-size: 0.92rem;
+}
+.verify-check:last-child { border-bottom: 0; }

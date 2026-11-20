@@ -67,7 +67,25 @@ sha256. Then **✅ Confirmer la scolarisation**.
 Show the receipts page: "✔ Reçu authentique (signature Nostr valide)",
 student masked to "M. D." — proof without exposing children's data.
 
-### 2:20 — The family in Dakar (switch persona, family — in WOLOF)
+### 2:20 — The public verifier (NEW wow moment — no login!)
+
+Log out (or open an incognito window) and paste the receipt's verify link:
+`…/#/verify/fee_xxxxx`.
+
+> "And here's what the family, the school inspector, anyone can do — no
+> account, no app. The public verifier re-checks the whole chain: Nostr
+> signature, the school's key, the Lightning payment hash, and it re-hashes
+> the evidence photo *right now* to prove it was never swapped."
+
+Show all checks green. Then (optional killer beat, 10s): swap the photo file
+on disk, refresh → the verifier turns **RED** on `evidence_intact`.
+
+> "Try to swap the evidence after the fact — the verifier catches it.
+> Tamper-evident, not trust-me."
+
+Share button: "And one tap shares the proof on WhatsApp."
+
+### 2:35 — The family in Dakar (switch persona, family — in WOLOF)
 
 Switch the language pill to **WO**. Login as **Aïda Diop** (2222).
 
@@ -76,7 +94,7 @@ Switch the language pill to **WO**. Login as **Aïda Diop** (2222).
 
 Show notifications + SMS simulation panel in Wolof.
 
-### 2:40 — Rejection & timeout = automatic refund (back to school, fast)
+### 2:50 — Rejection & timeout = automatic refund (back to school, fast)
 
 Create a second fee → pay → **↩️ Rejeter**. Then once more → pay →
 **⏱ Simuler l'expiration**.
@@ -85,11 +103,12 @@ Create a second fee → pay → **↩️ Rejeter**. Then once more → pay →
 > simply expires — the HTLC fails, the money returns to Paris **automatically**.
 > No support ticket, no custodian. That's the Lightning network doing escrow."
 
-### 2:55 — Close
+### 3:05 — Close (mention: 148 automated tests, all passing)
 
 > "Jàngal — money that can only become education. Fees on Lightning,
-> receipts on Nostr, Wolof in the UI. Built for Senegal, open source, one
-> command to run. Jërëjëf!"
+> receipts on Nostr, AI-verified evidence, Wolof in the UI. One hundred
+> forty-eight automated tests, all passing. Built for Senegal, open source,
+> one command to run. Jërëjëf!"
 
 ---
 
@@ -100,7 +119,9 @@ Create a second fee → pay → **↩️ Rejeter**. Then once more → pay →
 - [ ] Show WO / FR / EN switch once
 - [ ] Show the QR invoice (any wallet can pay it)
 - [ ] **Show the AI proof verdict panel in full — it is the differentiator**
+- [ ] **Show the public verifier with NO login — the second wow moment**
 - [ ] Show the receipt detail with the anchored proof hash + photo
+- [ ] Show school KPIs (median lock→settle, refund rate) + CSV export once
 - [ ] Terminal visible for the one-command start
 - [ ] End on the receipts page (signature valid badge)
 - [ ] Upload 1080p, add subtitles (FR + EN)

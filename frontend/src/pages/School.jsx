@@ -11,6 +11,7 @@ export default function School({ lang, me }) {
   const [fees, setFees] = useState(null);
   const [students, setStudents] = useState([]);
   const [wallet, setWallet] = useState(null);
+  const [stats, setStats] = useState(null);
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState("");
   const [creating, setCreating] = useState(false);
@@ -21,9 +22,10 @@ export default function School({ lang, me }) {
   const [uploading, setUploading] = useState("");
 
   const refresh = async () => {
-    const [f, w] = await Promise.all([api.fees(), api.wallet()]);
+    const [f, w, s] = await Promise.all([api.fees(), api.wallet(), api.schoolStats()]);
     if (f.status === 200) setFees(f.json.fees);
     if (w.status === 200) setWallet(w.json);
+    if (s.status === 200) setStats(s.json);
   };
   useEffect(() => {
     refresh();
@@ -169,6 +171,44 @@ export default function School({ lang, me }) {
           <div className="bigstat card"><div className="n">{fees.filter((f) => f.status === "settled").length}</div><div className="l">{L.settledCount}</div></div>
         </div>
       </div>
+
+      {/* secretariat KPIs — settlement speed, refund rate, AI-proof coverage */}
+      {stats && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <h3 style={{ margin: 0 }}>📊 {L.statsTitle}</h3>
+            <a className="btn ghost sm" style={{ marginLeft: "auto" }} href="/api/school/fees.csv" download>
+              ⬇ {L.exportCsv}
+            </a>
+          </div>
+          <div className="grid three" style={{ marginTop: 10 }}>
+            <div className="bigstat card" style={{ boxShadow: "none" }}>
+              <div className="n">{stats.medianLockToSettleSeconds != null ? stats.medianLockToSettleSeconds + " s" : "—"}</div>
+              <div className="l">{L.medianSettle}</div>
+            </div>
+            <div className="bigstat card" style={{ boxShadow: "none" }}>
+              <div className="n">{Math.round((stats.refundRate ?? 0) * 100)}%</div>
+              <div className="l">{L.refundRate}</div>
+            </div>
+            <div className="bigstat card" style={{ boxShadow: "none" }}>
+              <div className="n">{Math.round((stats.aiProofRate ?? 0) * 100)}%</div>
+              <div className="l">{L.aiProofRate}</div>
+            </div>
+          </div>
+          {stats.byTerm.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontWeight: 800, fontSize: "0.9rem", marginBottom: 6 }}>{L.byTerm}</div>
+              {stats.byTerm.slice(0, 4).map((t) => (
+                <div key={t.term} className="notif">
+                  <span>🗓 {t.term}</span>
+                  <span>{t.settledCount}×</span>
+                  <span className="time">{fmt(t.xofSettled)} F</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
         <button className="btn primary" onClick={() => setCreating((c) => !c)}>{creating ? "✕" : "＋"} {L.createFee}</button>

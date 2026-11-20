@@ -78,6 +78,25 @@ export function ReceiptDetail({ lang, feeId }) {
         <p className="mono" style={{ color: "var(--green-700)", fontWeight: 700 }}>
           {r.valid ? "✔ " + L.receiptValid : "✖ " + L.receiptInvalid}
         </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+          <a
+            className="btn ghost sm"
+            href={`#/verify/${r.feeId}`}
+            title={L.verifyTitle}
+          >
+            🔍 {L.verifyTitle}
+          </a>
+          <a
+            className="btn ghost sm"
+            href={`https://wa.me/?text=${encodeURIComponent(
+              `Jàngal — ${r.content.school} · ${r.content.student} · ${Number(r.content.amountXof).toLocaleString("fr-FR")} F\n${window.location.origin}/#/verify/${r.feeId}`
+            )}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            💬 {L.verifyShare}
+          </a>
+        </div>
       </div>
       {proof && (
         <div className="card">

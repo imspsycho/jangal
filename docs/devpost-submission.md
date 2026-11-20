@@ -51,15 +51,27 @@ does not always become school.
   via one env var)
 - Real Nostr: school keys, signed receipt events, **embedded relay** (ws://…/nostr),
   signature verification in the UI
+- **Public receipt verifier** (`/#/verify/<fee_id>`, no login): anyone — the
+  family in Dakar, the parent in Paris, the school inspector — can check the
+  whole trust chain: Nostr signature → school's registered key → Lightning
+  payment hash → fee settled → AI-evidence hash anchored → **photo re-hashed
+  live to prove it was never swapped after settlement**. Shareable on WhatsApp.
+- **School secretariat KPIs**: median lock→settle time, refund rate, AI-proof
+  coverage, per-term totals, and one-click **CSV ledger export** for accounting
 - Lightning wallet implementation for both sides (parent & school nodes,
   BOLT11 QR payable by any wallet)
 - AI: fee-note parsing + trilingual (wo/fr/en) assistant — deterministic mock
   provider by default, any OpenAI-compatible LLM via env vars
 - Live composed FX rate (mempool.space × XOF peg) with offline fallback
-- PWA, mobile-first, **~68 KB gzipped**, no external fonts/assets — built for
+- PWA, mobile-first, **~70 KB gzipped**, no external fonts/assets — built for
   low bandwidth and mid-range Androids
-- 21-assertion E2E smoke test covering happy path, refund path, proof photo
-  anchoring, HTLC-timeout refund, receipts and AI
+- **148 automated checks, all passing** (`make test`): unit suite (conversions,
+  i18n parity wo/fr/en, JWT tamper/expiry, Nostr forge attempts, hold-invoice
+  lifecycle), smoke E2E (full money path), and an extended E2E suite covering
+  RBAC matrix, auth bypass, illegal state transitions, **concurrent
+  confirm+reject races (exactly one wins, no 500s)**, **evidence-photo swap
+  detection**, XSS inertness, security headers, relay forgery rejection,
+  rate limiting and a parallel load burst — docs/test-report.md
 
 ### Wolof first
 
@@ -81,6 +93,8 @@ time-to-confirmation. Sources in docs/impact.md.
   between the parent's and school's Lightning nodes
 - Compromise of the server degrades service; it cannot redirect money
   (settle only with the fee-bound preimage; cancel only triggers refunds)
+- **Tamper-evident evidence**: swapping the proof photo after settlement breaks
+  the sha256 chain and the public verifier turns red (tested live)
 - Full threat model: docs/threat-model.md (CSRF, XSS/CSP, rate limits,
   preimage binding, PII masking, demo-vs-production trade-offs documented)
 

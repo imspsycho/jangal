@@ -221,6 +221,7 @@ export function registerRoutes(app) {
         satsSettled: byStatus.settled?.sat ?? 0,
         xofSettled: byStatus.settled?.xof ?? 0,
       },
+      medianLockToSettleSeconds: medianLockToSettle(q.feeStatsAllFees.all()),
       schools: q.allSchools.all().length,
       citations: [
         { label: "Households receiving remittances (Senegal, 2019)", value: "23%" },
@@ -383,7 +384,18 @@ export function registerRoutes(app) {
     if (!fee || fee.school_id !== user.school_id) return reply.code(404).send({ error: "not found" });
     if (fee.status !== "locked") return reply.code(409).send({ error: "fee is not in locked state" });
 
-    await lndSchool.settleInvoice(fee.preimage);
+    try {
+      await lndSchool.settleInvoice(fee.preimage);
+    } catch (e) {
+      // race: a concurrent reject/timeout may have canceled the invoice first
+      const fresh = q.feeById.get(fee.id);
+      if (fresh?.status === "refunded") return reply.code(409).send({ error: "fee was refunded concurrently" });
+      throw e;
+    }
+    const fresh = q.feeById.get(fee.id);
+    if (fresh?.status === "settled" && fresh.nostr_event_id) {
+      return { ok: true, status: "settled", receiptEventId: fresh.nostr_event_id, note: "already settled" };
+    }
     const event = settleBookkeeping(fee);
     const payment = q.paymentByFee.get(fee.id);
     if (payment) q.updatePayment.run("succeeded", payment.id);
@@ -399,7 +411,16 @@ export function registerRoutes(app) {
     if (!["locked", "awaiting_payment"].includes(fee.status)) {
       return reply.code(409).send({ error: "fee cannot be rejected from this state" });
     }
-    await lndSchool.cancelInvoice(fee.r_hash);
+    try {
+      await lndSchool.cancelInvoice(fee.r_hash);
+    } catch (e) {
+      // race: a concurrent confirm may have settled the invoice first
+      const fresh = q.feeById.get(fee.id);
+      if (fresh?.status === "settled") return reply.code(409).send({ error: "fee was confirmed concurrently" });
+      throw e;
+    }
+    const fresh = q.feeById.get(fee.id);
+    if (fresh?.status === "settled") return reply.code(409).send({ error: "fee was confirmed concurrently" });
     const next = fee.status === "locked" ? "refunded" : "canceled";
     const student = q.studentById.get(fee.student_id);
     const school = q.schoolById.get(fee.school_id);
@@ -444,6 +465,59 @@ export function registerRoutes(app) {
       event,
       content: JSON.parse(event.content),
     };
+  });
+
+  // ---- school dashboard stats ---------------------------------------------------
+  // Operational KPIs for the school secretariat: totals per status, per-term
+  // breakdown, median lock→settle latency, refund & AI-proof rates.
+  app.get("/api/school/stats", async (req, reply) => {
+    const user = guard(req, reply, ["school"]);
+    if (!user) return;
+    const rows = q.feesBySchool.all(user.school_id);
+    const byStatus = { awaiting_payment: 0, locked: 0, settled: 0, refunded: 0, canceled: 0 };
+    const byTerm = new Map();
+    let satsSettled = 0;
+    let xofSettled = 0;
+    let proofSettled = 0;
+    for (const f of rows) {
+      byStatus[f.status] = (byStatus[f.status] ?? 0) + 1;
+      if (f.status === "settled") {
+        satsSettled += f.amount_sat;
+        xofSettled += f.amount_xof;
+        if (q.proofByFee.get(f.id)) proofSettled++;
+        const t = byTerm.get(f.term) ?? { term: f.term, settledCount: 0, satsSettled: 0, xofSettled: 0 };
+        t.settledCount++;
+        t.satsSettled += f.amount_sat;
+        t.xofSettled += f.amount_xof;
+        byTerm.set(f.term, t);
+      }
+    }
+    const settledN = byStatus.settled;
+    const refundedN = byStatus.refunded;
+    return {
+      totals: { ...byStatus, satsSettled, xofSettled },
+      medianLockToSettleSeconds: medianLockToSettle(rows),
+      refundRate: settledN + refundedN > 0 ? Number((refundedN / (settledN + refundedN)).toFixed(4)) : 0,
+      aiProofRate: settledN > 0 ? Number((proofSettled / settledN).toFixed(4)) : 0,
+      byTerm: [...byTerm.values()].sort((a, b) => b.satsSettled - a.satsSettled),
+    };
+  });
+
+  // CSV export for the school ledger (accounting import)
+  app.get("/api/school/fees.csv", async (req, reply) => {
+    const user = guard(req, reply, ["school"]);
+    if (!user) return;
+    const rows = q.feesBySchool.all(user.school_id);
+    const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const header = "fee_id,student,class,term,status,amount_xof,amount_sat,created_at,paid_at,confirmed_at,nostr_event_id";
+    const lines = rows.map((f) =>
+      [f.id, f.student_name, f.class_level, f.term, f.status, f.amount_xof, f.amount_sat, f.created_at, f.paid_at ?? "", f.confirmed_at ?? "", f.nostr_event_id ?? ""]
+        .map(esc)
+        .join(",")
+    );
+    reply.header("Content-Type", "text/csv; charset=utf-8");
+    reply.header("Content-Disposition", `attachment; filename="jangal-fees-${new Date().toISOString().slice(0, 10)}.csv"`);
+    return `${header}\n${lines.join("\n")}\n`;
   });
 
   // ---- wallets ---------------------------------------------------------------
@@ -597,6 +671,10 @@ export function registerRoutes(app) {
       return reply.code(409).send({ error: `fee is ${fee.status} (need locked or awaiting_payment)` });
     }
     try { await lndSchool.cancelInvoice(fee.r_hash); } catch { /* already gone */ }
+    const fresh = q.feeById.get(fee.id);
+    if (fresh?.status === "settled") {
+      return reply.code(409).send({ error: "fee was confirmed concurrently" });
+    }
     const next = fee.status === "locked" ? "refunded" : "canceled";
     const student = q.studentById.get(fee.student_id);
     const view = { ...fee, student_name: student?.name ?? "", school_name: q.schoolById.get(fee.school_id)?.name ?? "" };
@@ -612,6 +690,17 @@ export function registerRoutes(app) {
 }
 
 // helpers -----------------------------------------------------------------
+// median seconds between funds locking (paid_at) and settling (confirmed_at)
+function medianLockToSettle(rows) {
+  const dt = rows
+    .filter((f) => f.status === "settled" && f.paid_at && f.confirmed_at)
+    .map((f) => (new Date(f.confirmed_at) - new Date(f.paid_at)) / 1000)
+    .filter((s) => s >= 0)
+    .sort((a, b) => a - b);
+  if (dt.length === 0) return null;
+  return Number(dt[Math.floor(dt.length / 2)].toFixed(1));
+}
+
 function withLocaleAmounts(f) {
   return { ...f, amount_xof_fmt: Number(f.amount_xof).toLocaleString("fr-FR") + " F", amount_sat_fmt: Number(f.amount_sat).toLocaleString("fr-FR") + " sats" };
 }

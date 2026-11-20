@@ -12,7 +12,12 @@ services:
     plan: free
     region: frankfurt # closest to Africa/Europe judges
     rootDir: backend
-    buildCommand: npm ci
+    # build the PWA into backend/public (backend/.gitignore excludes the
+    # build output, so Render must produce it at deploy time)
+    buildCommand: >-
+      npm ci &&
+      npm --prefix ../frontend ci &&
+      npm --prefix ../frontend run build -- --outDir ../backend/public --emptyOutDir
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true

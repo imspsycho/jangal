@@ -9,7 +9,7 @@ Frais de scolarité verrouillés sur le Lightning Network — l'argent n'atteint
 que si elle confirme la scolarisation, sinon il est remboursé automatiquement.</p>
 
 <p align="center">
-  <img alt="stack" src="https://img.shields.io/badge/Bitcoin-Lightning-f7931a"> <img alt="LND" src="https://img.shields.io/badge/LND-hold%20invoices-blueviolet"> <img alt="Nostr" src="https://img.shields.io/badge/Nostr-signed%20receipts-8b5cf6"> <img alt="AI" src="https://img.shields.io/badge/AI-fee%20notes%20%2B%20Wolof%20assistant-green"> <img alt="langs" src="https://img.shields.io/badge/langues-Wolof%20%C2%B7%20FR%20%C2%B7%20EN-success">
+  <img alt="stack" src="https://img.shields.io/badge/Bitcoin-Lightning-f7931a"> <img alt="LND" src="https://img.shields.io/badge/LND-hold%20invoices-blueviolet"> <img alt="Nostr" src="https://img.shields.io/badge/Nostr-signed%20receipts-8b5cf6"> <img alt="AI" src="https://img.shields.io/badge/AI-fee%20notes%20%2B%20Wolof%20assistant-green"> <img alt="langs" src="https://img.shields.io/badge/langues-Wolof%20%C2%B7%20FR%20%C2%B7%20EN-success"> <img alt="tests" src="https://img.shields.io/badge/tests-148%2F148%20passing-brightgreen">
 </p>
 
 ---
@@ -61,9 +61,14 @@ students and one fee invoice are seeded automatically.
 Also try: **reject** a payment (auto-refund), **simulate the hold-invoice
 expiry** (⏱ — funds return with no custodian), paste a fee note into the
 school's **AI parser**, ask the **assistant** in Wolof, upload a **proof photo**
-(AI vision verdict, hash anchored in the receipt), and verify a receipt's
-Nostr signature on the Reçus page. `make demo` runs the same flow end-to-end
-as a 21-assertion test.
+(AI vision verdict, hash anchored in the receipt), and — the trust feature —
+**open a receipt's public verify link without signing in**:
+`/#/verify/<fee_id>` re-checks the Nostr signature, the school key, the payment
+hash and re-hashes the evidence photo to prove it was never swapped
+(screenshot 13 shows it turning red on a tampered photo). The school home also
+shows secretariat KPIs (median lock→settle time, refund rate, AI-proof rate,
+per-term totals) and exports the ledger as **CSV**; receipts can be shared on
+**WhatsApp** straight from the app.
 
 ### No Docker? Mock mode / hosted demo
 
@@ -76,13 +81,23 @@ cd frontend && npm run dev                   # vite dev server on :5173
 the entire product (escrow, proof photos, AI verdicts, Nostr receipts) works
 without any Lightning infrastructure. This is also how the hosted demo runs.
 
-### Tests
+### Tests — 148 automated checks
 
 ```bash
-cd backend && LND_MODE=mock node src/index.js &   # or docker compose up
-node src/smoke.js                                 # 21 assertions: happy path +
-                                                  # refund + proof photo + timeout
+make test          # unit (43) + smoke E2E (21) + extended E2E (84) — ~2 min, no Docker
 ```
+
+- **Unit (43)** — conversions, i18n parity (wo/fr/en), JWT tamper/expiry,
+  Nostr sign→verify→forge, masked names, mock-LND hold-invoice lifecycle
+- **Smoke E2E (21)** — full money path: lock, settle, refund, AI proof,
+  receipt anchoring, balances
+- **Extended E2E (84)** — RBAC matrix, auth bypass, input validation,
+  illegal state transitions, **concurrent confirm+reject race (exactly one wins)**,
+  **evidence-photo swap detected by the public verifier**, XSS inertness,
+  security headers, relay protocol + forged-event rejection, rate limiting,
+  40-parallel load burst (118 ms)
+
+Full details and findings: [docs/test-report.md](docs/test-report.md)
 
 ## Architecture
 
@@ -123,6 +138,10 @@ Numbers: [docs/impact.md](docs/impact.md)
 |---|---|---|---|
 | ![](docs/screenshots/05-school-settled.png) | ![](docs/screenshots/06-receipts.png) | ![](docs/screenshots/07-receipt-proof.png) | ![](docs/screenshots/08-family-wolof.png) |
 
+| **Public verifier (no login)** | Verifier (mobile) | School KPIs + CSV | **Tampered photo → red** |
+|---|---|---|---|
+| ![](docs/screenshots/09-verify-public.png) | ![](docs/screenshots/10-verify-mobile.png) | ![](docs/screenshots/11-school-stats.png) | ![](docs/screenshots/13-verify-tamper-detected.png) |
+
 ## Why this will matter in Senegal
 
 - **Education is the #1 purpose of diaspora money** after food — and the most
@@ -145,6 +164,8 @@ Numbers: [docs/impact.md](docs/impact.md)
 | **Proof-photo AI verification** (mock deterministic or any vision model) | SMS/WhatsApp proof delivery to the parent |
 | **Proof hash + AI verdict anchored in Nostr receipts** | Mobile Money off-ramp for recipients without Bitcoin |
 | Live composed FX rate (mempool.space × XOF peg, offline fallback) | |
+| **Public receipt verifier** (Nostr sig + evidence sha256 re-check, no login) | |
+| **School KPIs + CSV ledger export** | |
 
 ## Repo layout
 

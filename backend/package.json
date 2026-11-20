@@ -8,7 +8,12 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "seed": "node src/seed.js",
-    "smoke": "node src/smoke.js"
+    "smoke": "node src/smoke.js",
+    "unit": "node src/unit-tests.js",
+    "e2e": "node src/e2e-full.js",
+    "test:unit": "node src/unit-tests.js",
+    "test:smoke": "node src/smoke.js",
+    "test:e2e": "node src/e2e-full.js"
   },
   "engines": {
     "node": ">=20"

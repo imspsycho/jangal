@@ -26,7 +26,7 @@ as a reliability choice.
 
 ## R2. Sésame's escrow is equally deep, and they have 144 tests vs our 21
 
-**Severity: 🔴.**
+**Severity: 🔴 → 🟢 (resolved on Nov 20).**
 Sésame (COD escrow, hold invoices, NWC, 144 automated tests) is the strongest
 rival and overlaps our escrow core. If judges score purely on escrow
 engineering depth, they can win.
@@ -36,10 +36,13 @@ local** money flow than COD logistics; (b) our escrow closes a loop theirs
 leaves open: **AI-verified evidence anchored in the receipt** — Sésame lists
 diaspora support as *future work*, we ship the diaspora use case; (c) we run
 a real bitcoind + 2×LND stack in one command, not just wallet-side NWC;
-(d) 21 assertions vs 144 is a smaller number but ours cover every state
-transition *including* the proof-anchoring invariant (receipt hash == uploaded
-hash) and the timeout refund. **Action:** never claim "most tests" — claim
-"every money-path invariant is tested, live, in the E2E".
+(d) **test-count gap closed: 148 automated checks vs their 144** — and ours go
+further than state transitions: RBAC matrix, auth-bypass attempts, concurrent
+confirm+reject races (exactly one wins), **live evidence-photo swap detection
+through the public verifier**, relay forgery rejection, rate-limit and load
+behaviour (docs/test-report.md). **Action:** the pitch line is now "148
+automated checks including adversarial ones — we tested how it fails, not
+just that it works."
 
 ## R3. Popular Choice is already lost (CircleSats ~22 votes)
 

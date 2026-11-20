@@ -10,6 +10,7 @@ import School from "./pages/School.jsx";
 import Family from "./pages/Family.jsx";
 import { Receipts, ReceiptDetail } from "./pages/Receipts.jsx";
 import Impact from "./pages/Impact.jsx";
+import Verify from "./pages/Verify.jsx";
 
 export default function App() {
   const [me, setMe] = useState(undefined); // undefined = loading, null = logged out
@@ -32,6 +33,10 @@ export default function App() {
   };
 
   if (me === undefined) return <div style={{ padding: 40, textAlign: "center", color: "var(--ink-soft)" }}>…</div>;
+
+  // public route: the receipt verifier is reachable WITHOUT signing in —
+  // that is the whole point: anyone can check a receipt's trust chain.
+  if (route.startsWith("verify/")) return <Verify feeId={route.split("/")[1]} />;
 
   if (!me)
     return (
