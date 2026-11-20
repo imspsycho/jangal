@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jàngal — School fees on Lightning</title>
+<meta name="description" content="Frais de scolarité verrouillés sur le Lightning Network — money that can only become education. AI-verified proofs, Nostr receipts, automatic refunds.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+:root{
+  --bg:#0d1117; --card:#161b22; --card2:#1c2129; --border:#2d333b;
+  --text:#e6edf3; --muted:#9aa4b2; --orange:#f7931a; --orange2:#ffa733;
+  --green:#3fb950; --violet:#a371f7; --blue:#58a6ff;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6}
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--card);margin:2px}
+.badge.btc{color:var(--orange);border-color:#5c4a1e}
+.badge.nos{color:var(--violet);border-color:#4a3a6e}
+.badge.ai{color:var(--green);border-color:#2a5c34}
+.badge.tst{color:#4ae38a;border-color:#2a5c34}
+header{padding:56px 0 34px;border-bottom:1px solid var(--border);background:radial-gradient(1200px 400px at 50% -100px,#241a08 0%,transparent 70%)}
+.logo-row{display:flex;align-items:center;gap:18px;justify-content:center}
+.logo-row img{width:72px;height:72px}
+h1{font-size:clamp(28px,5vw,44px);letter-spacing:-.5px}
+h1 .accent{color:var(--orange)}
+.tagline{font-size:clamp(16px,2.4vw,21px);color:var(--muted);text-align:center;margin-top:6px;font-style:italic}
+.tagline b{color:var(--text);font-style:normal}
+.badges{display:flex;flex-wrap:wrap;justify-content:center;margin-top:18px}
+section{padding:44px 0;border-bottom:1px solid var(--border)}
+h2{font-size:clamp(20px,3.4vw,28px);margin-bottom:6px}
+h2 .n{color:var(--orange)}
+.sub{color:var(--muted);margin-bottom:22px}
+.video{position:relative;padding-bottom:56.25%;height:0;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.video iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.step{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.step .num{color:var(--orange);font-weight:700;font-size:13px}
+.step .t{font-weight:700;margin:4px 0}
+.step p{font-size:13.5px;color:var(--muted)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.shot{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.shot img{width:100%;display:block;border-bottom:1px solid var(--border)}
+.shot .cap{padding:10px 12px;font-size:13px;color:var(--muted)}
+.shot .cap b{color:var(--text);display:block;font-size:13.5px}
+.shot.tamper{border-color:#7a2c2c}
+.shot.tamper .cap b{color:#ff7b72}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center}
+.stat .v{font-size:30px;font-weight:800;color:var(--orange)}
+.stat .l{font-size:13px;color:var(--muted);margin-top:4px}
+ul.feat{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+ul.feat li{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:14px}
+ul.feat li b{color:var(--orange2)}
+.run{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px}
+.card h3{font-size:16px;margin-bottom:8px}
+.card p{font-size:13.5px;color:var(--muted);margin-bottom:12px}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:#0a0e14;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:13px;overflow-x:auto;color:#c9d1d9}
+pre .c{color:var(--green)}
+.links{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.btn{display:inline-block;padding:12px 22px;border-radius:8px;font-weight:700;font-size:15px;border:1px solid var(--border)}
+.btn.o{background:var(--orange);color:#1a1005;border-color:var(--orange)} .btn.o:hover{text-decoration:none;filter:brightness(1.08)}
+.btn.g{background:var(--card);color:var(--text)} .btn.g:hover{text-decoration:none;border-color:var(--muted)}
+footer{padding:30px 0 44px;color:var(--muted);font-size:13.5px;text-align:center}
+footer .wl{color:var(--orange);font-style:italic}
+@media(max-width:640px){.logo-row{flex-direction:column;text-align:center}}
+</style>
+</head>
+<body>
+
+<header>
+<div class="wrap">
+  <div class="logo-row">
+    <img src="favicon.svg" alt="Jàngal logo">
+    <div>
+      <h1>Jàngal — <span class="accent">School fees on Lightning</span></h1>
+      <p class="tagline"><b>Money that can only become education.</b><br>
+      Frais de scolarité verrouillés sur le Lightning Network — l'argent n'atteint l'école que si elle confirme la scolarisation.</p>
+    </div>
+  </div>
+  <div class="badges">
+    <span class="badge btc">Bitcoin · Lightning</span>
+    <span class="badge btc">LND hold invoices (HTLC)</span>
+    <span class="badge nos">Nostr-signed receipts</span>
+    <span class="badge ai">AI-verified proofs</span>
+    <span class="badge">Wolof · FR · EN</span>
+    <span class="badge tst">✓ 148 tests + 13-step browser journey</span>
+  </div>
+</div>
+</header>
+
+<section>
+<div class="wrap">
+  <h2><span class="n">▶</span> 3-minute demo</h2>
+  <p class="sub">The full product loop, including the live tamper-detection beat: swap the proof photo behind a settled receipt and the public verifier turns red by itself.</p>
+  <div class="video"><iframe src="https://www.youtube.com/embed/fGDln6mZ5yo" title="Jangal demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+</div>
+</section>
+
+<section>
+<div class="wrap">
+  <h2><span class="n">01</span> How it works</h2>
+  <p class="sub">Purpose-locked payments: nobody — not Jàngal, not a middleman, not the school — can redirect the money.</p>
+  <div class="steps">
+    <div class="step"><div class="num">STEP 1</div><div class="t">School creates the fee invoice</div><p>Or photographs the fee note — AI parses student, class, term, amount (FCFA + sats).</p></div>
+    <div class="step"><div class="num">STEP 2</div><div class="t">Diaspora parent pays in sats</div><p>Funds LOCK in a Lightning hold invoice. Nobody can claim them yet.</p></div>
+    <div class="step"><div class="num">STEP 3</div><div class="t">School attaches the proof</div><p>Enrolment receipt photo → AI vision verifies it against the fee record.</p></div>
+    <div class="step"><div class="num">STEP 4</div><div class="t">One tap confirms enrolment</div><p>The hold invoice settles — school paid in seconds. No confirmation → HTLC times out → automatic refund.</p></div>
+    <div class="step"><div class="num">STEP 5</div><div class="t">Nostr-signed receipt</div><p>Anchors the proof hash + AI verdict, verifiable forever by anyone. Family notified in Wolof.</p></div>
+  </div>
+</div>
+</section>
+
+<section>
+<div class="wrap">
+  <h2><span class="n">02</span> The product</h2>
+  <p class="sub">Mobile-first PWA, ~70 KB gzipped, no external assets — built for low bandwidth and mid-range Androids.</p>
+  <div class="gallery">
+    <div class="shot"><img src="shots/02-parent-fees.png" alt="Parent view"><div class="cap"><b>Parent (diaspora)</b>Fee list with FCFA/sats, live FX — pay by any Lightning wallet (BOLT11 QR)</div></div>
+    <div class="shot"><img src="shots/03-locked.png" alt="Funds locked"><div class="cap"><b>Funds locked in escrow</b>Hold invoice accepted — money parked in the HTLC, unclaimable by anyone yet</div></div>
+    <div class="shot"><img src="shots/04-school-proof-ai.png" alt="AI proof verification"><div class="cap"><b>School secretariat</b>Proof photo attached → AI vision verdict: match / mismatch / unclear, with named checks</div></div>
+    <div class="shot"><img src="shots/05-school-settled.png" alt="Settled"><div class="cap"><b>Confirmation</b>One tap settles the invoice — school paid in seconds, automatic refund path if it never comes</div></div>
+    <div class="shot"><img src="shots/07-receipt-proof.png" alt="Nostr receipt"><div class="cap"><b>Nostr receipt (kind 30078)</b>Signed by the school's key, anchors the sha256 of the proof photo + AI verdict — names masked to initials</div></div>
+    <div class="shot"><img src="shots/08-family-wolof.png" alt="Wolof notifications"><div class="cap"><b>Family, in Wolof</b>Notifications drafted in Wolof (SMS gateway adapter ready for Orange SMS API)</div></div>
+    <div class="shot"><img src="shots/09-verify-public.png" alt="Public verifier"><div class="cap"><b>Public verifier — no login</b>Anyone re-checks the whole trust chain: Nostr signature → school key → payment hash → AI evidence hash</div></div>
+    <div class="shot"><img src="shots/11-school-stats.png" alt="School KPIs"><div class="cap"><b>School KPIs</b>Median lock→settle time, refund rate, AI-proof coverage, per-term totals + CSV ledger export</div></div>
+    <div class="shot tamper"><img src="shots/13-verify-tamper-detected.png" alt="Tamper detected"><div class="cap"><b>Tamper detected — live</b>The verifier re-checks every 5 s: swap the evidence photo and an open page turns RED by itself…</div></div>
+    <div class="shot"><img src="shots/14-verify-live-restored.png" alt="Restored"><div class="cap"><b>…and back to green</b>…proving the receipt the family holds can never be silently rewritten</div></div>
+  </div>
+</div>
+</section>
+
+<section>
+<div class="wrap">
+  <h2><span class="n">03</span> Impact</h2>
+  <p class="sub">Education is the largest family expense after food in Senegal; a huge share is paid by the diaspora through middlemen charging 7–10%.</p>
+  <div class="grid">
+    <div class="stat"><div class="v">7–10% → ~1%</div><div class="l">what parents save vs money-transfer operators</div></div>
+    <div class="stat"><div class="v">40 M FCFA</div><div class="l">yearly fees moved by one 300-student Dakar school</div></div>
+    <div class="stat"><div class="v">seconds</div><div class="l">lock → settle time, with a reconciliation ledger</div></div>
+    <div class="stat"><div class="v">0 custody</div><div class="l">the app never holds funds or wallet keys — HTLC math does the escrow</div></div>
+  </div>
+</div>
+</section>
+
+<section>
+<div class="wrap">
+  <h2><span class="n">04</span> What's real &amp; how to run it</h2>
+  <p class="sub">Same code, two modes: the hosted path runs the full hold-invoice state machine in simulation; Docker runs it against real bitcoind + 2 LND regtest nodes.</p>
+  <div class="run">
+    <div class="card">
+      <h3>🐳 Full Lightning stack (real, one command)</h3>
+      <p>bitcoind + lnd-school + lnd-parent + app. First boot mines regtest blocks and opens the channel automatically. Demo codes: 1111 parent · 3333 school · 2222 family.</p>
+      <pre>git clone https://github.com/imspsycho/jangal && cd jangal
+docker compose up --build
+<span class="c"># → http://localhost:3000</span></pre>
+    </div>
+    <div class="card">
+      <h3>☁️ Hosted demo (Render, free)</h3>
+      <p><code>render.yaml</code> is one-click ready — same app in <code>LND_MODE=mock</code>, every feature works (escrow lifecycle, AI verdicts, Nostr receipts, Wolof UI). See <code>DEPLOY.md</code>.</p>
+      <pre><span class="c"># after deploy, verify:</span>
+curl -s https://&lt;your-demo&gt;/api/health
+cd backend && node src/smoke.js https://&lt;your-demo&gt;
+<span class="c"># 21/21 smoke checks must pass</span></pre>
+    </div>
+  </div>
+  <h2 style="margin-top:34px">Under the hood</h2>
+  <ul class="feat" style="margin-top:14px">
+    <li><b>Real hold-invoice lifecycle</b> — AddHoldInvoice → payment locked → SettleInvoice / CancelInvoice with automatic refunds</li>
+    <li><b>AI-verified proof photos</b> — vision verdict (match/mismatch/unclear + named checks), hash + verdict anchored in the Nostr receipt; deterministic mock offline, any OpenAI-compatible vision model via one env var</li>
+    <li><b>Real Nostr</b> — school keys, signed kind-30078 events, embedded relay (ws://…/nostr), signature verification in the UI</li>
+    <li><b>Public receipt verifier</b> — /#/verify/&lt;fee_id&gt;, no login, re-verifies every 5 s, WhatsApp-shareable</li>
+    <li><b>Security by design</b> — server compromise degrades service, cannot redirect money; full threat model in docs/threat-model.md</li>
+    <li><b>148 automated checks + 13-step browser journey</b> — RBAC, auth bypass, confirm/reject races, evidence-swap detection, XSS, security headers, rate limits, load</li>
+    <li><b>Trilingual AI assistant</b> — Wolof / Français / English, fee-note parsing, live FX (mempool.space × XOF peg) with offline fallback</li>
+    <li><b>School KPIs + CSV</b> — median lock→settle, refund rate, AI coverage, per-term totals, one-click ledger export</li>
+  </ul>
+</div>
+</section>
+
+<section>
+<div class="wrap">
+  <h2><span class="n">05</span> Links</h2>
+  <div class="links">
+    <a class="btn o" href="https://github.com/imspsycho/jangal">GitHub repo</a>
+    <a class="btn g" href="https://youtu.be/fGDln6mZ5yo">Demo video</a>
+    <a class="btn g" href="https://dakar-bitcoin-hack-2026.devpost.com/">Dakar Bitcoin Hack 2026</a>
+  </div>
+</div>
+</section>
+
+<footer>
+<div class="wrap">
+  Built for the <b>Dakar Bitcoin Hack by BTrust 2026</b> · Raed Jemli<br>
+  <span class="wl">Jàngal</span> — Wolof: "to educate" · Bitcoin (regtest) · LND · Nostr · Fastify · React PWA
+</div>
+</footer>
+
+</body>
+</html>
