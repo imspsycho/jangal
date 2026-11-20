@@ -26,7 +26,7 @@ await app.register(helmet, {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"], // inline styles for tiny UI accents
-      imgSrc: ["'self'", "data:"],
+      imgSrc: ["'self'", "data:", "blob:"],
       connectSrc: ["'self'", "ws:", "wss:"],
     },
   },

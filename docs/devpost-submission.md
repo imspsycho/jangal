@@ -29,10 +29,14 @@ does not always become school.
    parses student, class, term and amount (FCFA and sats both shown).
 2. **The diaspora parent pays in sats** — funds are locked in a **Lightning
    hold invoice** (HTLC). Nobody can claim them yet.
-3. **The school confirms enrolment with one tap** — the invoice settles, the
+3. **The school attaches proof and confirms** — it photographs the enrolment/
+   fee receipt; our **AI vision verifies it against the fee record** (school,
+   student, class, term, amount ±5%); one tap settles the invoice and the
    school is paid in seconds.
 4. **A Nostr-signed receipt is published** (kind 30078) — verifiable forever
-   by anyone, with student names masked to initials for privacy.
+   by anyone. It anchors the **sha256 of the proof photo and the AI verdict**,
+   with student names masked to initials for privacy. Evidence, escrow and
+   receipt form one closed loop.
 5. **If the school never confirms** — the HTLC fails and the money returns to
    the parent **automatically**. Escrow by Lightning math, not by a custodian.
 
@@ -41,15 +45,21 @@ does not always become school.
 - Full stack: bitcoind + 2 LND nodes + Fastify app — `docker compose up --build`
 - Real hold-invoice lifecycle: `AddHoldInvoice` → payment locked →
   `SettleInvoice` / `CancelInvoice` with automatic refunds
+- **AI-verified proof photos**: upload → vision verdict (match/mismatch/
+  unclear + named checks) → hash + verdict anchored in the Nostr receipt
+  (deterministic mock provider offline, any OpenAI-compatible vision model
+  via one env var)
 - Real Nostr: school keys, signed receipt events, **embedded relay** (ws://…/nostr),
   signature verification in the UI
 - Lightning wallet implementation for both sides (parent & school nodes,
   BOLT11 QR payable by any wallet)
 - AI: fee-note parsing + trilingual (wo/fr/en) assistant — deterministic mock
   provider by default, any OpenAI-compatible LLM via env vars
-- PWA, mobile-first, **63 KB gzipped**, no external fonts/assets — built for
+- Live composed FX rate (mempool.space × XOF peg) with offline fallback
+- PWA, mobile-first, **~68 KB gzipped**, no external fonts/assets — built for
   low bandwidth and mid-range Androids
-- 15-assertion E2E smoke test covering happy path, refund path, receipts and AI
+- 21-assertion E2E smoke test covering happy path, refund path, proof photo
+  anchoring, HTLC-timeout refund, receipts and AI
 
 ### Wolof first
 

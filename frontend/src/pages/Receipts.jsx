@@ -36,6 +36,14 @@ export function Receipts({ lang }) {
             <div>💰 {Number(r.content.amountXof ?? 0).toLocaleString("fr-FR")} F</div>
             <div>⚡ {Number(r.content.amountSat ?? 0).toLocaleString("fr-FR")} sats</div>
           </div>
+          {r.content.proofSha256 && (
+            <div style={{ marginTop: 8, fontSize: "0.8rem", padding: "6px 10px", borderRadius: 8, background: "var(--cream)", display: "flex", gap: 8, alignItems: "center" }}>
+              <span>{r.content.proofVerdict === "match" ? "🤖✅" : r.content.proofVerdict === "mismatch" ? "🤖⚠️" : "🤖ℹ️"}</span>
+              <span>
+                {t[lang].proofOnReceipt} — <span className="mono">{r.content.proofSha256.slice(0, 16)}…</span>
+              </span>
+            </div>
+          )}
           <p className="mono" style={{ margin: "10px 0 0" }}>event {r.eventId.slice(0, 32)}…</p>
         </div>
       ))}
@@ -45,10 +53,12 @@ export function Receipts({ lang }) {
 
 export function ReceiptDetail({ lang, feeId }) {
   const [r, setR] = useState(null);
+  const [proof, setProof] = useState(null);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     api.receipt(feeId).then((res) => (res.status === 200 ? setR(res.json) : setNotFound(true)));
+    api.proof(feeId).then((res) => res.status === 200 && setProof(res.json));
   }, [feeId]);
 
   if (notFound)
@@ -69,6 +79,34 @@ export function ReceiptDetail({ lang, feeId }) {
           {r.valid ? "✔ " + L.receiptValid : "✖ " + L.receiptInvalid}
         </p>
       </div>
+      {proof && (
+        <div className="card">
+          <h3>🤖 {L.proofOnReceipt}</h3>
+          <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <img
+              src={`/api/fees/${feeId}/proof/image`}
+              alt="proof"
+              style={{ width: 160, borderRadius: 8, border: "1px solid var(--line)" }}
+            />
+            <div style={{ fontSize: "0.88rem" }}>
+              <div style={{ fontWeight: 800, color: proof.verdict === "match" ? "var(--green-700)" : proof.verdict === "mismatch" ? "var(--red-600)" : "var(--ink-soft)" }}>
+                {proof.verdict === "match" ? "✅ " + L.proofMatch : proof.verdict === "mismatch" ? "⚠️ " + L.proofMismatch : "ℹ️ " + L.proofUnclear}
+                <span style={{ color: "var(--ink-soft)", fontWeight: 600 }}> ({Math.round(proof.confidence * 100)}%)</span>
+              </div>
+              <div className="mono" style={{ fontSize: "0.74rem", color: "var(--ink-soft)", marginTop: 6 }}>
+                sha256 {proof.imageSha256.slice(0, 32)}… · {proof.model}
+              </div>
+              <div style={{ marginTop: 8 }}>
+                {(proof.checks ?? []).map((c, i) => (
+                  <div key={i} style={{ fontSize: "0.82rem", color: "var(--ink-soft)" }}>
+                    {c.pass ? "✔" : "✘"} {c.name}{c.note ? ` — ${c.note}` : ""}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="card receipt-item">
         <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: "0.8rem", fontFamily: "ui-monospace, monospace" }}>
 {JSON.stringify(r.content, null, 2)}

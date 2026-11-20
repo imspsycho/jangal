@@ -16,14 +16,15 @@ only when it decides to accept the payment).
                  ┌───────────────────▼─────────────────────────┐
                  │              Fastify app :3000              │
                  │                                             │
-                 │  routes/api.js  ── fee state machine        │
+                 │  routes/api.js  ── fee state machine + proofs    │
                  │  lnd.js         ── LND REST client          │
                  │  nostr.js       ── receipts + relay         │
-                 │  ai.js          ── parser + assistant       │
+                 │  ai.js          ── parser + assistant +     │
+                 │                    proof vision             │
                  │  db.js          ── SQLite (WAL)             │
                  │  seed.js        ── bootstrap: wallets,      │
                  │                    channel, demo data       │
-                 │  smoke.js       ── E2E test (15 checks)     │
+                 │  smoke.js       ── E2E test (21 checks)     │
                  └───────┬─────────────────────┬───────────────┘
                          │                     │
               LND REST (school)         ws relay (/nostr)
@@ -93,15 +94,43 @@ via `nostr-tools`) signs a **kind 30078** (application-specific data) event:
 - The receipts page re-verifies `id`/`sig` with `nostr-tools.verifyEvent` —
   anyone can paste the event into any Nostr client and confirm.
 
+## AI-verified proof photos (the evidence loop)
+
+Escrow guarantees the money can only reach the school after confirmation; the
+**proof layer** guarantees the confirmation is backed by evidence:
+
+```
+school attaches receipt photo  ──►  POST /api/fees/:id/proof
+        │                                   │
+        │                        sha256(image) stored
+        │                        vision model checks it against the fee record
+        │                        (school, student, class, term, amount ±5%)
+        ▼                                   ▼
+ confirm ──► SettleInvoice ──► Nostr receipt anchors proofSha256
+                                   + proofVerdict + proofModel
+```
+
+- Verdicts: `match` / `mismatch` / `unclear`, each with named checks and a
+  confidence. The school stays the authority — the AI is the **auditor**, so a
+  failed AI never blocks a legitimate confirmation (documented trade-off).
+- Providers: deterministic **mock** (offline-reproducible demos) or any
+  OpenAI-compatible **vision** endpoint (GLM-4V, GPT-4o, Groq vision —
+  `AI_PROVIDER=openai-compatible` + `AI_VISION_MODEL`).
+- Uploads are role-checked (school of the fee), MIME/size validated
+  (image/* ≤ 6 MB), stored under `data/proofs/`, served only to authenticated
+  roles. Only the **hash** is anchored in the public Nostr receipt — no PII on
+  the relay.
+
 ## AI layer
 
-`ai.js` has two providers behind one interface:
+`ai.js` has three functions behind one interface:
 
-- **mock** (default): deterministic heuristics — amount regex for FCFA,
-  Francophone class levels (CI…CM2, 6ème…Tle), trimester hints. Zero network.
-- **openai-compatible**: any `/v1/chat/completions` endpoint (GLM, GPT, Groq…)
-  with a JSON-mode prompt for parsing and a grounded FAQ prompt for the
-  assistant. Config: `AI_PROVIDER`, `AI_BASE_URL`, `AI_MODEL`, `AI_API_KEY`.
+- **parseFeeNote** — fee-note text → structured draft (student, class, term,
+  amount). Mock: deterministic heuristics (FCFA regex, Francophone class
+  levels, trimester hints). LLM: JSON-mode prompt.
+- **ask** — trilingual (wo/fr/en) grounded assistant. Mock FAQ or LLM.
+- **verifyProof** — receipt-photo → verdict vs the fee record (see above).
+  Mock: deterministic checks. Vision: image + record prompt, JSON verdict.
 
 The mock provider guarantees the demo is **offline-reproducible for judges**;
 the LLM provider shows the production path (photo → structured fee in any
@@ -109,17 +138,23 @@ language).
 
 ## FCFA ↔ sats
 
-Regtest has no market. The demo rate is fixed by `RATE_XOF_PER_SAT` (default
-0.85 — derivation in [impact.md](impact.md)) and shown everywhere an amount is
-displayed. In production this would be a rate feed + slippage margin.
+Regtest has no market, so fee conversion uses the documented demo constant
+`RATE_XOF_PER_SAT` (default 0.85 — derivation in [impact.md](impact.md)).
+`GET /api/meta` additionally reports a **live composed rate** —
+mempool.space sat/USD × the XOF/USD peg (≈600) — cached 10 min, with the demo
+constant as offline fallback and the source string shown in the response.
 
 ## Dev tools
 
 - `POST /api/dev/mine` — mines regtest blocks (channel confirmations); guarded
   by `ALLOW_MINING=1` on hosted deployments.
+- `POST /api/dev/expire/:feeId` — simulates the hold-invoice expiry: the HTLC
+  fails and locked funds return to the parent automatically (live demo of the
+  no-custodian refund guarantee).
 - `LND_MODE=mock` — full state-machine simulation of both LND nodes for UI
-  work and CI without Lightning infrastructure.
-- `node src/smoke.js` — 15-assertion E2E (happy path + refund + receipts + AI).
+  work, CI and hosted demos without Lightning infrastructure.
+- `node src/smoke.js` — 21-assertion E2E (happy path + refund + proof photo +
+  timeout refund + receipts + AI).
 
 ## Scaling notes (post-hackathon)
 

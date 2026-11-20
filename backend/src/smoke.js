@@ -111,6 +111,97 @@ let feeId;
   ok("school rejects -> automatic refund", rej.status === 200 && rej.json.status === "refunded");
 }
 
+// 7b. AI-verified proof photo: upload -> verdict -> anchored in receipt
+{
+  // deterministic valid PNG (120x120 RGB, ~1.5 KB) built in pure Node
+  const zlib = await import("node:zlib");
+  const crc32 = (buf) => {
+    let c;
+    const table = [];
+    for (let n = 0; n < 256; n++) {
+      c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      table[n] = c >>> 0;
+    }
+    let crc = 0xffffffff;
+    for (const b of buf) crc = table[(crc ^ b) & 0xff] ^ (crc >>> 8);
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(td));
+    return Buffer.concat([len, td, crc]);
+  };
+  const mkPng = (w, h) => {
+    const raw = Buffer.alloc((w * 3 + 1) * h);
+    let seed = 42; // deterministic LCG — incompressible enough to stay > 1 KB
+    const next = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) % 256;
+    for (let y = 0; y < h; y++) {
+      raw[y * (w * 3 + 1)] = 0; // filter byte
+      for (let x = 0; x < w * 3; x++) raw[y * (w * 3 + 1) + 1 + x] = next();
+    }
+    const ihdr = Buffer.alloc(13);
+    ihdr.writeUInt32BE(w, 0);
+    ihdr.writeUInt32BE(h, 4);
+    ihdr[8] = 8;
+    ihdr[9] = 2; // 8-bit RGB
+    return Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      chunk("IHDR", ihdr),
+      chunk("IDAT", zlib.deflateSync(raw)),
+      chunk("IEND", Buffer.alloc(0)),
+    ]);
+  };
+  const b64 = mkPng(120, 120).toString("base64");
+
+  const r = await school.req("POST", "/api/fees", {
+    studentId: "s_ibrahima",
+    term: "Trimestre 3 2026-2027",
+    classLevel: "6ème",
+    amountXof: 25000,
+    memo: "Frais — smoke proof",
+  });
+  const fid = r.json?.fee?.id;
+  const p = await parent.req("POST", `/api/fees/${fid}/pay`, {});
+  ok("third fee paid & locked", p.json?.feeStatus === "locked");
+
+  const up = await school.req("POST", `/api/fees/${fid}/proof`, { imageBase64: b64, mime: "image/png" });
+  ok(
+    "proof uploaded, AI verdict returned",
+    up.status === 200 && ["match", "mismatch", "unclear"].includes(up.json?.verdict) && up.json.imageSha256?.length === 64,
+    `verdict=${up.json?.verdict} model=${up.json?.model}`
+  );
+
+  const conf = await school.req("POST", `/api/fees/${fid}/confirm`, {});
+  ok("proof-bearing fee confirmed", conf.status === 200 && conf.json.status === "settled");
+  const rec = await parent.req("GET", `/api/receipts/${fid}`);
+  ok(
+    "receipt anchors proof hash + AI verdict",
+    rec.json?.content?.proofSha256 === up.json?.imageSha256 && !!rec.json?.content?.proofVerdict,
+    `${rec.json?.content?.proofVerdict} / ${rec.json?.content?.proofSha256?.slice(0, 12)}…`
+  );
+  const img = await parent.req("GET", `/api/fees/${fid}/proof/image`);
+  ok("proof image served back", img.status === 200);
+}
+
+// 7c. timeout auto-refund (HTLC expiry)
+{
+  const r = await school.req("POST", "/api/fees", {
+    studentId: "s_mariama",
+    term: "Année scolaire 2026-2027",
+    classLevel: "CM2",
+    amountXof: 15000,
+    memo: "Frais — smoke timeout",
+  });
+  const fid = r.json?.fee?.id;
+  await parent.req("POST", `/api/fees/${fid}/pay`, {});
+  const exp = await parent.req("POST", `/api/dev/expire/${fid}`, {});
+  ok("hold-invoice expiry -> automatic refund", exp.status === 200 && exp.json.status === "refunded", exp.json?.note ?? "");
+}
+
 // 8. AI layer (mock provider default)
 {
   const r = await fetch(BASE + "/api/ai/ask", {

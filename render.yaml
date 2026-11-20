@@ -1,0 +1,34 @@
+# Jàngal — hosted demo on Render (free tier)
+#
+# Deploys the full app in LND_MODE=mock: the complete hold-invoice state
+# machine runs in simulation, so every feature (escrow lifecycle, proof
+# photos + AI verdicts, Nostr receipts, Wolof UI) works without Lightning
+# infrastructure. `docker compose up` locally runs the same code against
+# real bitcoind + LND regtest nodes.
+services:
+  - type: web
+    name: jangal
+    runtime: node
+    plan: free
+    region: frankfurt # closest to Africa/Europe judges
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LND_MODE
+        value: mock
+      - key: SEED_ON_BOOT
+        value: "1"
+      - key: RATE_XOF_PER_SAT
+        value: "0.85"
+      # keep AI_PROVIDER=mock for a deterministic, always-online demo;
+      # switch to a real vision model after the hackathon:
+      #   AI_PROVIDER=openai-compatible, AI_BASE_URL, AI_MODEL, AI_VISION_MODEL, AI_API_KEY
+      - key: AI_PROVIDER
+        value: mock
+      - generateValue: true # JWT_SECRET
+        key: JWT_SECRET

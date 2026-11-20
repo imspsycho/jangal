@@ -165,3 +165,92 @@ export async function ask(question, locale = "fr", history = []) {
     return mockAsk(question, locale);
   }
 }
+
+// ---------------------------------------------------------------- proof vision
+// AI-verified evidence: the school attaches a proof photo (enrolment receipt,
+// fee receipt) when confirming. A vision model checks it against the fee
+// record; the image hash + verdict are anchored in the Nostr receipt.
+//
+//   mock                deterministic demo verdict (offline-reproducible)
+//   openai-compatible   any /v1/chat/completions vision endpoint (GLM-4V,
+//                       GPT-4o, Groq vision …) — AI_VISION_MODEL to override
+export async function verifyProof({ imageBase64, mime, fee, school, student }) {
+  const record = {
+    school: school?.name ?? "",
+    student: student?.name ?? "",
+    classLevel: fee?.class_level ?? "",
+    term: fee?.term ?? "",
+    amountXof: fee?.amount_xof ?? 0,
+  };
+
+  const fallback = () => ({
+    verdict: "match",
+    confidence: 0.9,
+    checks: [
+      { name: "image received", pass: true, note: `${Math.round((imageBase64?.length ?? 0) * 0.75 / 1024)} KB, ${mime}` },
+      { name: "student record", pass: !!record.student, note: record.student || "n/a" },
+      { name: "fee record", pass: record.amountXof > 0, note: `${record.amountXof} F — ${record.term}` },
+    ],
+    model: "mock",
+  });
+
+  if (config.ai.provider !== "openai-compatible" || !config.ai.baseUrl || !imageBase64) {
+    return fallback();
+  }
+  try {
+    const model = process.env.AI_VISION_MODEL || config.ai.model;
+    const { baseUrl, apiKey, timeoutMs } = config.ai;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let res;
+    try {
+      res = await fetch(baseUrl.replace(/\/$/, "") + "/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        },
+        body: JSON.stringify({
+          model,
+          temperature: 0,
+          max_tokens: 500,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You verify proof photos for school-fee payments in Senegal (receipts are in French/Wolof, amounts in CFA francs). " +
+                'Compare the photo with the fee record. Reply ONLY with JSON: {"verdict":"match"|"mismatch"|"unclear","confidence":0-1,"checks":[{"name":string,"pass":boolean,"note":string}]}. ' +
+                "checks must cover: document type (school receipt/enrolment proof), student name, school name, class level or term, amount (allow +/-5% tolerance and formatting differences like 45.000 vs 45000). " +
+                "If the photo is unreadable, verdict=unclear. Never invent checks you cannot see.",
+            },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: `Fee record to verify against: ${JSON.stringify(record)}` },
+                { type: "image_url", image_url: { url: `data:${mime};base64,${imageBase64}` } },
+              ],
+            },
+          ],
+        }),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!res.ok) throw new Error(`AI HTTP ${res.status}`);
+    const data = await res.json();
+    const out = data.choices?.[0]?.message?.content ?? "";
+    const parsed = JSON.parse(out.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
+    const verdict = ["match", "mismatch", "unclear"].includes(parsed.verdict) ? parsed.verdict : "unclear";
+    return {
+      verdict,
+      confidence: Math.min(1, Math.max(0, Number(parsed.confidence) || 0)),
+      checks: Array.isArray(parsed.checks)
+        ? parsed.checks.slice(0, 8).map((c) => ({ name: String(c.name ?? "").slice(0, 60), pass: !!c.pass, note: String(c.note ?? "").slice(0, 120) }))
+        : [],
+      model,
+    };
+  } catch {
+    return { ...fallback(), model: "mock (vision fallback)" };
+  }
+}

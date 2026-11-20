@@ -111,9 +111,23 @@ CREATE TABLE IF NOT EXISTS wallet_events (
   created_at  TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS proofs (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  fee_id        TEXT UNIQUE NOT NULL REFERENCES fees(id),
+  image_path    TEXT NOT NULL,             -- stored file under data/proofs/
+  image_sha256  TEXT NOT NULL,             -- anchored in the Nostr receipt
+  mime          TEXT NOT NULL,
+  verdict       TEXT NOT NULL,             -- match | mismatch | unclear
+  confidence    REAL NOT NULL,             -- 0..1
+  checks_json   TEXT NOT NULL,             -- [{name, pass, note}]
+  model         TEXT NOT NULL,             -- which AI checked it (or 'mock')
+  created_at    TEXT DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_fees_status ON fees(status);
 CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_pay_fee ON payments(fee_id);
+CREATE INDEX IF NOT EXISTS idx_proof_fee ON proofs(fee_id);
 `);
 
 export const q = {
@@ -159,4 +173,10 @@ export const q = {
 
   // wallet events
   insertWalletEvent: db.prepare("INSERT INTO wallet_events (actor, kind, amount_sat, fee_id) VALUES (?,?,?,?)"),
+
+  // proofs (AI-verified evidence attached to settled fees)
+  insertProof: db.prepare(`INSERT INTO proofs (fee_id, image_path, image_sha256, mime, verdict, confidence, checks_json, model)
+                           VALUES (@fee_id, @image_path, @image_sha256, @mime, @verdict, @confidence, @checks_json, @model)`),
+  proofByFee: db.prepare("SELECT * FROM proofs WHERE fee_id = ?"),
+  updateProof: db.prepare("UPDATE proofs SET verdict = ?, confidence = ?, checks_json = ?, model = ? WHERE fee_id = ?"),
 };

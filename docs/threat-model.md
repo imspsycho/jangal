@@ -35,12 +35,14 @@ Lightning HTLCs between the parent's and the school's nodes:
 |---|---|
 | CSRF on state-changing endpoints | cookie is `httpOnly`, `SameSite=Lax`; API is fetch-only, CORS not enabled cross-origin |
 | Brute-forcing logins / API abuse | global rate limit (240 req/min) via `@fastify/rate-limit`; tighter budget feasible per-IP |
-| XSS | React (no `dangerouslySetInnerHTML`); `@fastify/helmet` CSP: `script-src 'self'`, `img-src 'self' data:`, no inline scripts |
-| Payload abuse | `bodyLimit` 64 KB; zod-style manual validation on all inputs (amount ranges 1 000–5 000 000 XOF, string caps, enum checks) |
+| XSS | React (no `dangerouslySetInnerHTML`); `@fastify/helmet` CSP: `script-src 'self'`, `img-src 'self' data: blob:`, no inline scripts |
+| Payload abuse | global `bodyLimit` 64 KB; 8 MB only on the proof-upload route with MIME allowlist (jpeg/png/webp/heic) and 6 MB cap; zod-style manual validation on all inputs (amount ranges 1 000–5 000 000 XOF, string caps, enum checks) |
 | JWT forgery | HMAC-SHA256 with server secret, 12 h expiry, `timingSafeEqual` verification |
 | PII leakage | student names masked to initials in Nostr receipts; no phone numbers in logs; SMS bodies contain amounts/names only (documented) |
 | Preimage leakage (double-spend trick) | preimages live only in the app DB, revealed to the school node at settle; single-use by construction (hash-bound) |
 | Invoice substitution | `payment_hash` is generated per fee, stored at creation, and the settle path only accepts the DB row's preimage |
+| Fake proof photos | AI verdict is an **auditor, not an authority** — it never settles or blocks money; school stays accountable; sha256 of the exact image is anchored in the signed receipt so any later dispute compares against the anchored hash; malformed uploads rejected (MIME allowlist, 1 KB–6 MB); images stored privately, served only to authenticated roles |
+| Vision-model manipulation | verdict + model name + confidence are all recorded in the receipt — a wrong AI call is detectable and attributable after the fact |
 | Relay spam | embedded Nostr relay signature-checks every EVENT (`verifyEvent`), ignores invalid; in-memory cap by design of demo |
 | Secret handling | all secrets via env vars; `.env.example` documents every one; demo JWT secret clearly marked `change-me` |
 | Supply chain | 6 runtime deps, all mainstream (fastify, better-sqlite3, nostr-tools, ws, @fastify/*); `package-lock.json` committed |
@@ -76,5 +78,6 @@ does not create loss of funds.
 
 - All state transitions are logged (`wallet_events`, `payments`, `notifs`) —
   a full audit trail per fee.
-- The smoke test asserts the invariant that matters most:
-  *balance only moves on settle; refunds are automatic*.
+- The smoke test asserts the invariants that matter most:
+  *balance only moves on settle; refunds are automatic; the Nostr receipt
+  anchors exactly the proof hash that was uploaded*.

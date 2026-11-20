@@ -30,13 +30,16 @@ modes:
 ```
 1. The school creates the fee invoice        (or photographs the fee note — AI parses it)
 2. The diaspora parent pays in sats          → funds are LOCKED in a Lightning hold invoice
-3. The school confirms enrolment (one tap)   → the hold invoice settles, school is paid
-4. A Nostr-signed receipt is published       → family in Dakar is notified in Wolof
+3. The school attaches the enrolment proof    → AI VISION verifies it against the fee record
+4. The school confirms enrolment (one tap)    → the hold invoice settles, school is paid
+5. A Nostr-signed receipt is published        → it anchors the PROOF HASH + AI verdict;
+                                               family in Dakar is notified in Wolof
    …and if the school never confirms?        → the HTLC fails, funds return automatically
 ```
 
 Nobody — not Jàngal, not a middleman, not the school — can redirect the money.
-It is escrow **by Lightning math, not by a custodian**.
+It is escrow **by Lightning math, not by a custodian** — with **AI-verified
+evidence** anchored in every receipt.
 
 ## Quick start (one command)
 
@@ -52,25 +55,33 @@ students and one fee invoice are seeded automatically.
 | Demo persona | Code | What to try |
 |---|---|---|
 | 👨‍👩‍👧 Ousmane Diop — diaspora parent, Paris | `1111` | Pay Mariama's 45 000 F fee → watch it **lock** |
-| 🏫 École Mame Diarra Mbaye — school, Médina | `3333` | **Confirm** the locked fee → Nostr receipt is signed |
+| 🏫 École Mame Diarra Mbaye — school, Médina | `3333` | **Attach proof** (AI vision verdict) → **Confirm** → Nostr receipt |
 | 👵 Aïda Diop — family, Dakar | `2222` | See notifications + simulated SMS in Wolof |
 
-Also try: **reject** a payment (auto-refund), paste a fee note into the school's
-**AI parser**, ask the **assistant** in Wolof, and verify a receipt's Nostr signature
-on the Reçus page. `make demo` runs the same flow end-to-end as a test.
+Also try: **reject** a payment (auto-refund), **simulate the hold-invoice
+expiry** (⏱ — funds return with no custodian), paste a fee note into the
+school's **AI parser**, ask the **assistant** in Wolof, upload a **proof photo**
+(AI vision verdict, hash anchored in the receipt), and verify a receipt's
+Nostr signature on the Reçus page. `make demo` runs the same flow end-to-end
+as a 21-assertion test.
 
-### No Docker? UI development mode
+### No Docker? Mock mode / hosted demo
 
 ```bash
 cd backend && LND_MODE=mock npm start        # API + simulated LND on :3000
 cd frontend && npm run dev                   # vite dev server on :5173
 ```
 
+`LND_MODE=mock` runs the **full hold-invoice state machine in simulation** —
+the entire product (escrow, proof photos, AI verdicts, Nostr receipts) works
+without any Lightning infrastructure. This is also how the hosted demo runs.
+
 ### Tests
 
 ```bash
 cd backend && LND_MODE=mock node src/index.js &   # or docker compose up
-node src/smoke.js                                 # 15 assertions, full happy path + refund
+node src/smoke.js                                 # 21 assertions: happy path +
+                                                  # refund + proof photo + timeout
 ```
 
 ## Architecture
@@ -84,8 +95,8 @@ node src/smoke.js                                 # 15 assertions, full happy pa
 │  Fastify app                                             │
 │   • fee state machine: awaiting → locked → settled/refund│
 │   • AI layer: fee-note parser + trilingual assistant     │
-│     (mock provider by default — deterministic & offline) │
-│   • SQLite (users, fees, payments, receipts, notifs)     │
+│     + proof-photo vision verification                     │
+│   • SQLite (users, fees, payments, receipts, proofs)      │
 │   • embedded Nostr relay (ws://…/nostr)                  │
 └───────┬──────────────────────────────┬───────────────────┘
         │ LND REST (hold invoices)     │ Nostr (kind 30078)
@@ -102,11 +113,15 @@ Details: [docs/architecture.md](docs/architecture.md) ·
 Security: [docs/threat-model.md](docs/threat-model.md) ·
 Numbers: [docs/impact.md](docs/impact.md)
 
-## Screenshots
+## Screenshots (mobile PWA, 390px)
 
-| Parent pays (FR) | Funds locked (FR) | School confirms | Receipts (Nostr) | Family (WO) |
-|---|---|---|---|---|
-| ![](docs/screenshots/02-parent-fees.png) | ![](docs/screenshots/03-locked.png) | ![](docs/screenshots/04-school-settled.png) | ![](docs/screenshots/05-receipts.png) | ![](docs/screenshots/06-family-wolof.png) |
+| Login personas | Parent fees (FR) | Funds locked | **Proof + AI verdict** |
+|---|---|---|---|
+| ![](docs/screenshots/01-login.png) | ![](docs/screenshots/02-parent-fees.png) | ![](docs/screenshots/03-locked.png) | ![](docs/screenshots/04-school-proof-ai.png) |
+
+| Confirmed | Receipts (Nostr, valid) | **Receipt anchors the proof** | Family (Wolof) |
+|---|---|---|---|
+| ![](docs/screenshots/05-school-settled.png) | ![](docs/screenshots/06-receipts.png) | ![](docs/screenshots/07-receipt-proof.png) | ![](docs/screenshots/08-family-wolof.png) |
 
 ## Why this will matter in Senegal
 
@@ -127,6 +142,9 @@ Numbers: [docs/impact.md](docs/impact.md)
 | Parent→school channel, HTLC lock & refund | SMS gateway (outbox table; Orange SMS API slot) |
 | Nostr receipts (signed, relay-served, verifiable) | Phone-number auth (demo uses one-tap personas) |
 | AI fee-note parser + assistant (mock or any OpenAI-compatible LLM) | School onboarding flow |
+| **Proof-photo AI verification** (mock deterministic or any vision model) | SMS/WhatsApp proof delivery to the parent |
+| **Proof hash + AI verdict anchored in Nostr receipts** | Mobile Money off-ramp for recipients without Bitcoin |
+| Live composed FX rate (mempool.space × XOF peg, offline fallback) | |
 
 ## Repo layout
 

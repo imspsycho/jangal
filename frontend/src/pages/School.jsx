@@ -17,6 +17,8 @@ export default function School({ lang, me }) {
   const [note, setNote] = useState("");
   const [parsing, setParsing] = useState(false);
   const [form, setForm] = useState({ studentId: "", term: "Trimestre 1 2026-2027", classLevel: "", amountXof: "", memo: "" });
+  const [proofs, setProofs] = useState({}); // feeId -> {verdict, confidence, checks, imageSha256, previewUrl, model}
+  const [uploading, setUploading] = useState("");
 
   const refresh = async () => {
     const [f, w] = await Promise.all([api.fees(), api.wallet()]);
@@ -94,6 +96,40 @@ export default function School({ lang, me }) {
     try {
       const r = await api.confirm(id);
       if (r.status === 200) flash("✅ " + t[lang].confirmSuccess);
+      else flash("⚠️ " + (r.json?.error ?? "error"));
+    } finally {
+      setBusy("");
+      refresh();
+    }
+  };
+
+  // AI-verified evidence: attach a photo of the fee receipt / enrolment proof.
+  // The image hash + AI verdict are anchored in the Nostr receipt on settle.
+  const attachProof = async (feeId, file) => {
+    if (!file) return;
+    setUploading(feeId);
+    try {
+      const imageBase64 = await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result).split(",")[1]);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+      const r = await api.uploadProof(feeId, imageBase64, file.type || "image/jpeg");
+      if (r.status === 200) {
+        setProofs((p) => ({ ...p, [feeId]: { ...r.json, previewUrl: URL.createObjectURL(file) } }));
+        flash(r.json.verdict === "match" ? "✅ " + t[lang].proofMatch : r.json.verdict === "mismatch" ? "⚠️ " + t[lang].proofMismatch : "ℹ️ " + t[lang].proofUnclear);
+      } else flash("⚠️ " + (r.json?.error ?? "upload error"));
+    } finally {
+      setUploading("");
+    }
+  };
+
+  const expireFee = async (id) => {
+    setBusy(id);
+    try {
+      const r = await api.expire(id);
+      if (r.status === 200) flash("⏱ ↩️ " + t[lang].refunded);
       else flash("⚠️ " + (r.json?.error ?? "error"));
     } finally {
       setBusy("");
@@ -215,6 +251,43 @@ export default function School({ lang, me }) {
             {f.status === "locked" && (
               <>
                 <div className="hint green">{L.schoolConfirmHint}</div>
+                {/* AI-verified proof (recommended before confirming) */}
+                {proofs[f.id] ? (
+                  <div className="card" style={{ background: "var(--cream)", boxShadow: "none", padding: 12 }}>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                      {proofs[f.id].previewUrl && (
+                        <img src={proofs[f.id].previewUrl} alt="proof" style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 8, border: "1px solid var(--line)" }} />
+                      )}
+                      <div style={{ fontSize: "0.85rem" }}>
+                        <div style={{ fontWeight: 800, color: proofs[f.id].verdict === "match" ? "var(--green-700)" : "var(--red-600)" }}>
+                          {proofs[f.id].verdict === "match" ? "✅ " : proofs[f.id].verdict === "mismatch" ? "⚠️ " : "ℹ️ "}
+                          {proofs[f.id].verdict === "match" ? L.proofMatch : proofs[f.id].verdict === "mismatch" ? L.proofMismatch : L.proofUnclear}
+                          <span style={{ color: "var(--ink-soft)", fontWeight: 600 }}> ({Math.round(proofs[f.id].confidence * 100)}%)</span>
+                        </div>
+                        <div className="mono" style={{ fontSize: "0.72rem", color: "var(--ink-soft)", marginTop: 4 }}>
+                          sha256 {proofs[f.id].imageSha256?.slice(0, 24)}… · {proofs[f.id].model}
+                        </div>
+                        <div style={{ marginTop: 6 }}>
+                          {(proofs[f.id].checks ?? []).slice(0, 4).map((c, i) => (
+                            <div key={i} style={{ fontSize: "0.78rem", color: "var(--ink-soft)" }}>{c.pass ? "✔" : "✘"} {c.name}</div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="hint" style={{ margin: "8px 0 0" }}>{L.proofOnReceipt}</p>
+                  </div>
+                ) : (
+                  <label className="btn ghost sm" style={{ cursor: "pointer" }}>
+                    {uploading === f.id ? "… " + L.aiChecking : "📷 " + L.attachProof}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: "none" }}
+                      disabled={uploading === f.id}
+                      onChange={(e) => attachProof(f.id, e.target.files?.[0])}
+                    />
+                  </label>
+                )}
                 <div className="fee-actions">
                   <button className="btn primary" disabled={busy === f.id} onClick={() => confirmFee(f.id)}>
                     ✅ {L.confirm}
@@ -223,6 +296,9 @@ export default function School({ lang, me }) {
                     ↩️ {L.reject}
                   </button>
                 </div>
+                <button className="btn ghost sm" style={{ marginTop: 8 }} disabled={busy === f.id} onClick={() => expireFee(f.id)}>
+                  ⏱ {L.simulateTimeout}
+                </button>
               </>
             )}
             {f.status === "settled" && (

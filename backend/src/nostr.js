@@ -16,7 +16,7 @@ export function newSchoolNostrKeys() {
   return { pubkey: getPublicKey(sk), privkeyHex: Buffer.from(sk).toString("hex") };
 }
 
-export function signReceiptEvent(school, fee, student, preimageless = true) {
+export function signReceiptEvent(school, fee, student, proof = null) {
   const sk = Uint8Array.from(Buffer.from(school.nostr_privkey, "hex"));
   const receipt = {
     v: 1,
@@ -30,6 +30,13 @@ export function signReceiptEvent(school, fee, student, preimageless = true) {
     amountXof: fee.amount_xof,
     amountSat: fee.amount_sat,
     paymentHash: fee.r_hash,
+    ...(proof
+      ? {
+          proofSha256: proof.image_sha256,         // AI-verified evidence hash
+          proofVerdict: proof.verdict,             // match | mismatch | unclear
+          proofModel: proof.model,                 // vision model (or mock)
+        }
+      : {}),
     settledAt: new Date().toISOString(),
   };
   const event = finalizeEvent(

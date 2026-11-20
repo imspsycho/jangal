@@ -31,5 +31,8 @@ export const api = {
   receipt: (feeId) => req("GET", `/receipts/${feeId}`),
   aiParse: (text, locale) => req("POST", "/ai/parse-note", { text, locale }),
   aiAsk: (question, locale, history) => req("POST", "/ai/ask", { question, locale, history }),
+  uploadProof: (id, imageBase64, mime) => req("POST", `/fees/${id}/proof`, { imageBase64, mime }),
+  proof: (id) => req("GET", `/fees/${id}/proof`),
+  expire: (id) => req("POST", `/dev/expire/${id}`, {}),
   mine: (blocks) => req("POST", "/dev/mine", { blocks }),
 };

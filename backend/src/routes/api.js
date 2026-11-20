@@ -15,8 +15,10 @@ import { lndSchool, lndParent, newPreimage, hashOf } from "../lnd.js";
 import { config } from "../config.js";
 import { signReceiptEvent, storeReceipt, verifyReceiptEvent } from "../nostr.js";
 import { xofToSat, shortId, localized, queueSms } from "../util.js";
-import { parseFeeNote, ask as aiAsk } from "../ai.js";
+import { parseFeeNote, ask as aiAsk, verifyProof } from "../ai.js";
 import { mine } from "../bitcoind.js";
+import fs from "node:fs";
+import path from "node:path";
 
 // ------------------------------------------------------------------ auth util
 const b64u = (buf) => Buffer.from(buf).toString("base64url");
@@ -115,8 +117,9 @@ export function settleBookkeeping(fee, { notify = true } = {}) {
   const school = q.schoolById.get(fee.school_id);
   const view = { ...fee, student_name: student?.name ?? "", school_name: school?.name ?? "" };
 
-  // Nostr-signed receipt
-  const event = signReceiptEvent(school, { ...fee, r_hash: fee.r_hash }, student);
+  // Nostr-signed receipt (proof hash + AI verdict anchored when present)
+  const proof = q.proofByFee.get(fee.id);
+  const event = signReceiptEvent(school, { ...fee, r_hash: fee.r_hash }, student, proof);
   storeReceipt({ ...fee }, event);
 
   q.updateFeeStatus.run("settled", fee.paid_at ?? now, now, event.id, fee.id);
@@ -173,12 +176,38 @@ export function registerRoutes(app) {
   });
 
   // ---- meta & impact --------------------------------------------------------
-  app.get("/api/meta", async () => ({
-    rate: { xofPerSat: config.rate.xofPerSat },
-    feeExpirySeconds: config.fees.expirySeconds,
-    aiProvider: config.ai.provider,
-    network: "regtest",
-  }));
+  // XOF/sat rate: composed live from mempool.space (sat/USD) × USD/XOF peg
+  // (XOF is pegged to EUR, ~600 F/1 US$), cached 10 min, with a documented
+  // demo constant as fallback so the demo works fully offline.
+  const rateCache = { at: 0, xofPerSat: config.rate.xofPerSat, source: "demo-constant" };
+  async function liveRate() {
+    if (Date.now() - rateCache.at < 10 * 60 * 1000) return rateCache;
+    rateCache.at = Date.now();
+    try {
+      const usdXof = Number(process.env.USD_XOF || "600") || 600; // ~peg, documented
+      const res = await fetch("https://mempool.space/api/v1/prices", {
+        signal: AbortSignal.timeout(4000),
+      });
+      if (res.ok) {
+        const j = await res.json();
+        const usdBtc = Number(j?.USD);
+        if (usdBtc > 0) {
+          rateCache.xofPerSat = (usdBtc / 1e8) * usdXof;
+          rateCache.source = `mempool.space ($${usdBtc.toLocaleString("en-US")}/BTC) × ${usdXof} F/$`;
+        }
+      }
+    } catch { /* offline — keep fallback */ }
+    return rateCache;
+  }
+  app.get("/api/meta", async () => {
+    const rate = await liveRate();
+    return {
+      rate: { xofPerSat: Number(rate.xofPerSat.toFixed(4)), source: rate.source },
+      feeExpirySeconds: config.fees.expirySeconds,
+      aiProvider: config.ai.provider,
+      network: process.env.LND_MODE === "mock" ? "mock (simulated settlement)" : "regtest",
+    };
+  });
 
   app.get("/api/impact", async () => {
     const stats = q.feeStats.all();
@@ -246,10 +275,14 @@ export function registerRoutes(app) {
     const school = q.schoolById.get(synced.school_id);
     const payment = q.paymentByFee.get(synced.id);
     const receipt = q.receiptByFee.get(synced.id);
+    const proof = q.proofByFee.get(synced.id);
     return {
       fee: withLocaleAmounts({ ...synced, student_name: student?.name, school_name: school?.name }),
       payment: payment ? { state: payment.state, amount_sat: payment.amount_sat } : null,
       receipt: receipt ? { eventId: receipt.nostr_event_id, event: JSON.parse(receipt.event_json) } : null,
+      proof: proof
+        ? { verdict: proof.verdict, confidence: proof.confidence, imageSha256: proof.image_sha256, model: proof.model }
+        : null,
     };
   });
 
@@ -449,6 +482,88 @@ export function registerRoutes(app) {
     return { draft: await parseFeeNote(text, locale ?? "fr") };
   });
 
+  // ---- proof-of-enrolment photos (AI-verified evidence) --------------------------
+  // School uploads a photo of the fee receipt / enrolment proof for a locked fee.
+  // A vision model checks it against the fee record; the sha256 of the image and
+  // the AI verdict are anchored in the Nostr receipt when the fee settles.
+  app.post("/api/fees/:id/proof", { bodyLimit: 8 * 1024 * 1024 }, async (req, reply) => {
+    const user = guard(req, reply, ["school"]);
+    if (!user) return;
+    const fee = q.feeById.get(req.params.id);
+    if (!fee || fee.school_id !== user.school_id) return reply.code(404).send({ error: "not found" });
+    if (!["awaiting_payment", "locked"].includes(fee.status)) {
+      return reply.code(409).send({ error: `proof can be attached while awaiting or locked (fee is ${fee.status})` });
+    }
+    const { imageBase64, mime } = req.body ?? {};
+    if (typeof imageBase64 !== "string" || imageBase64.length < 100) {
+      return reply.code(400).send({ error: "imageBase64 required" });
+    }
+    const m = String(mime ?? "").match(/^(image\/(jpeg|png|webp|heic|heif))$/);
+    if (!m) return reply.code(400).send({ error: "mime must be image/jpeg|png|webp|heic|heif" });
+    const buf = Buffer.from(imageBase64, "base64");
+    if (buf.length < 1024) return reply.code(400).send({ error: "image too small" });
+    if (buf.length > 6 * 1024 * 1024) return reply.code(413).send({ error: "image too large (max 6 MB)" });
+
+    const school = q.schoolById.get(fee.school_id);
+    const student = q.studentById.get(fee.student_id);
+    const verdict = await verifyProof({ imageBase64, mime: m[1], fee, school, student });
+
+    const sha256 = crypto.createHash("sha256").update(buf).digest("hex");
+    const proofsDir = path.join(config.dataDir, "proofs");
+    fs.mkdirSync(proofsDir, { recursive: true });
+    const ext = m[1].split("/")[1] === "jpeg" ? "jpg" : m[1].split("/")[1];
+    const filePath = path.join(proofsDir, `${fee.id}.${ext}`);
+    fs.writeFileSync(filePath, buf);
+
+    const row = {
+      fee_id: fee.id,
+      image_path: filePath,
+      image_sha256: sha256,
+      mime: m[1],
+      verdict: verdict.verdict,
+      confidence: verdict.confidence,
+      checks_json: JSON.stringify(verdict.checks ?? []),
+      model: verdict.model ?? "mock",
+    };
+    if (q.proofByFee.get(fee.id)) q.updateProof.run(row.verdict, row.confidence, row.checks_json, row.model, fee.id);
+    else q.insertProof.run(row);
+
+    return {
+      ok: true,
+      verdict: verdict.verdict,
+      confidence: verdict.confidence,
+      checks: verdict.checks ?? [],
+      imageSha256: sha256,
+      model: verdict.model ?? "mock",
+    };
+  });
+
+  // proof detail (any authenticated role; receipt page shows hash + verdict)
+  app.get("/api/fees/:id/proof", async (req, reply) => {
+    const user = guard(req, reply);
+    if (!user) return;
+    const proof = q.proofByFee.get(req.params.id);
+    if (!proof) return reply.code(404).send({ error: "no proof for this fee" });
+    return {
+      verdict: proof.verdict,
+      confidence: proof.confidence,
+      checks: JSON.parse(proof.checks_json),
+      imageSha256: proof.image_sha256,
+      model: proof.model,
+      createdAt: proof.created_at,
+    };
+  });
+
+  // proof image (authenticated; used by the receipt page)
+  app.get("/api/fees/:id/proof/image", async (req, reply) => {
+    const user = guard(req, reply);
+    if (!user) return;
+    const proof = q.proofByFee.get(req.params.id);
+    if (!proof || !fs.existsSync(proof.image_path)) return reply.code(404).send({ error: "no proof image" });
+    reply.header("Content-Type", proof.mime).header("Cache-Control", "private, max-age=3600");
+    return reply.send(fs.readFileSync(proof.image_path));
+  });
+
   app.post("/api/ai/ask", async (req, reply) => {
     const { question, locale, history } = req.body ?? {};
     if (!question || typeof question !== "string" || question.length > 1000) {
@@ -468,6 +583,31 @@ export function registerRoutes(app) {
     const addr = (await lndSchool.newAddress()).address;
     const hashes = await mine(blocks, addr);
     return { ok: true, mined: blocks, tip: hashes?.[hashes.length - 1] };
+  });
+
+  // Simulate the hold-invoice expiry: the HTLC times out on Lightning, the
+  // locked funds return to the parent without anyone's permission. Lets judges
+  // see the automatic-refund guarantee live in the demo.
+  app.post("/api/dev/expire/:feeId", async (req, reply) => {
+    const user = guard(req, reply);
+    if (!user) return;
+    const fee = q.feeById.get(req.params.feeId);
+    if (!fee) return reply.code(404).send({ error: "not found" });
+    if (!["locked", "awaiting_payment"].includes(fee.status)) {
+      return reply.code(409).send({ error: `fee is ${fee.status} (need locked or awaiting_payment)` });
+    }
+    try { await lndSchool.cancelInvoice(fee.r_hash); } catch { /* already gone */ }
+    const next = fee.status === "locked" ? "refunded" : "canceled";
+    const student = q.studentById.get(fee.student_id);
+    const view = { ...fee, student_name: student?.name ?? "", school_name: q.schoolById.get(fee.school_id)?.name ?? "" };
+    const parent = q.userById.get(student?.guardian_user_id ?? "");
+    if (parent) {
+      q.insertNotification.run(parent.id, fee.id, "refunded", localized("refunded", parent.locale, view), parent.locale);
+      queueSms("refunded", view, parent.locale);
+    }
+    q.insertWalletEvent.run("system", "refund", fee.amount_sat, fee.id);
+    q.updateFeeStatus.run(next, null, null, null, fee.id);
+    return { ok: true, status: next, note: "hold invoice expired — HTLC failed, funds returned automatically" };
   });
 }
 

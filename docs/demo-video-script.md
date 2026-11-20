@@ -47,13 +47,22 @@ Login as **Ousmane Diop** (1111). Show the fee card → **⚡ Payer maintenant**
 
 Show the amber "Fonds verrouillés" state + the hint that it auto-refunds.
 
-### 1:50 — The school confirms (switch persona, school)
+### 1:50 — Proof + AI verification (the wow moment — switch persona, school)
 
-One tap: **✅ Confirmer la scolarisation**.
+On the locked fee: **📷 Joindre le justificatif** → pick the receipt photo.
 
-> "The school confirms Mariama's enrolment — the hold invoice settles, the
-> school is paid in seconds. A **Nostr receipt** is signed by the school's key
-> and published. Even if Jàngal disappears, that proof stays verifiable."
+> "Before confirming, the school photographs the enrolment receipt. Our AI
+> vision checks it against the fee record — school, student, class, term,
+> amount. Conforme, ninety percent. And look: the photo's SHA-256 is going
+> into the receipt. The diaspora parent in Paris will verify the *exact*
+> evidence, not a promise."
+
+Show the verdict panel: "✅ IA : justificatif conforme (90%)", checks list,
+sha256. Then **✅ Confirmer la scolarisation**.
+
+> "One tap — the hold invoice settles, the school is paid in seconds. A
+> **Nostr receipt** is signed by the school's key with the proof hash and AI
+> verdict inside. Even if Jàngal disappears, that proof stays verifiable."
 
 Show the receipts page: "✔ Reçu authentique (signature Nostr valide)",
 student masked to "M. D." — proof without exposing children's data.
@@ -67,13 +76,14 @@ Switch the language pill to **WO**. Login as **Aïda Diop** (2222).
 
 Show notifications + SMS simulation panel in Wolof.
 
-### 2:40 — Rejection = automatic refund (back to school, fast)
+### 2:40 — Rejection & timeout = automatic refund (back to school, fast)
 
-Create a second fee → pay → **↩️ Rejeter**.
+Create a second fee → pay → **↩️ Rejeter**. Then once more → pay →
+**⏱ Simuler l'expiration**.
 
-> "And if a school never confirms? The HTLC fails, the money returns to Paris
-> **automatically**. No support ticket, no custodian. That's the Lightning
-> network doing escrow."
+> "And if a school never confirms? Reject — refunded. Or the hold invoice
+> simply expires — the HTLC fails, the money returns to Paris **automatically**.
+> No support ticket, no custodian. That's the Lightning network doing escrow."
 
 ### 2:55 — Close
 
@@ -89,6 +99,8 @@ Create a second fee → pay → **↩️ Rejeter**.
 - [ ] Mobile viewport (390×844) — judges score "mid-range phones" UX
 - [ ] Show WO / FR / EN switch once
 - [ ] Show the QR invoice (any wallet can pay it)
+- [ ] **Show the AI proof verdict panel in full — it is the differentiator**
+- [ ] Show the receipt detail with the anchored proof hash + photo
 - [ ] Terminal visible for the one-command start
 - [ ] End on the receipts page (signature valid badge)
 - [ ] Upload 1080p, add subtitles (FR + EN)
