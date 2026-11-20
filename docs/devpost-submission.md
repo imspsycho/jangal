@@ -55,7 +55,9 @@ does not always become school.
   family in Dakar, the parent in Paris, the school inspector — can check the
   whole trust chain: Nostr signature → school's registered key → Lightning
   payment hash → fee settled → AI-evidence hash anchored → **photo re-hashed
-  live to prove it was never swapped after settlement**. Shareable on WhatsApp.
+  live to prove it was never swapped after settlement**. The page re-checks
+  itself every 5 s — swap the photo behind it and an open verifier turns red
+  by itself. Shareable on WhatsApp.
 - **School secretariat KPIs**: median lock→settle time, refund rate, AI-proof
   coverage, per-term totals, and one-click **CSV ledger export** for accounting
 - Lightning wallet implementation for both sides (parent & school nodes,
@@ -65,13 +67,16 @@ does not always become school.
 - Live composed FX rate (mempool.space × XOF peg) with offline fallback
 - PWA, mobile-first, **~70 KB gzipped**, no external fonts/assets — built for
   low bandwidth and mid-range Androids
-- **148 automated checks, all passing** (`make test`): unit suite (conversions,
+- **148 automated checks + a 13-step browser journey, all passing** (`make
+  test`): unit suite (conversions,
   i18n parity wo/fr/en, JWT tamper/expiry, Nostr forge attempts, hold-invoice
   lifecycle), smoke E2E (full money path), and an extended E2E suite covering
   RBAC matrix, auth bypass, illegal state transitions, **concurrent
   confirm+reject races (exactly one wins, no 500s)**, **evidence-photo swap
   detection**, XSS inertness, security headers, relay forgery rejection,
-  rate limiting and a parallel load burst — docs/test-report.md
+  rate limiting and a parallel load burst — plus a Playwright journey walking
+  the whole product loop in a real browser with API-state assertions after
+  every click — docs/test-report.md
 
 ### Wolof first
 

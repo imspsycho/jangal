@@ -77,13 +77,17 @@ Log out (or open an incognito window) and paste the receipt's verify link:
 > signature, the school's key, the Lightning payment hash, and it re-hashes
 > the evidence photo *right now* to prove it was never swapped."
 
-Show all checks green. Then (optional killer beat, 10s): swap the photo file
-on disk, refresh → the verifier turns **RED** on `evidence_intact`.
+Show all checks green. Point at the "Live verification — last checked" line.
 
-> "Try to swap the evidence after the fact — the verifier catches it.
-> Tamper-evident, not trust-me."
+Then the killer beat (10s): swap the photo file on disk — **do NOT touch the
+browser** — within 5 seconds the open verifier page turns **RED** on
+`evidence_intact` all by itself (live re-check every 5 s).
 
-Share button: "And one tap shares the proof on WhatsApp."
+> "Watch this — I swap the evidence photo behind the scenes… and the verifier
+> catches it LIVE, without anyone refreshing. Tamper-evident, not trust-me."
+
+Restore the photo → the page flips back to green on its own. One tap shares
+the proof on WhatsApp.
 
 ### 2:35 — The family in Dakar (switch persona, family — in WOLOF)
 

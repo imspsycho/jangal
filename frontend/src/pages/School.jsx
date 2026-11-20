@@ -240,7 +240,17 @@ export default function School({ lang, me }) {
           <form onSubmit={createFee}>
             <label className="f">
               <span>{L.studentName}</span>
-              <select className="f" required value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })}>
+              <select
+                className="f"
+                required
+                value={form.studentId}
+                onChange={(e) => {
+                  const s = roster.find((r) => r.id === e.target.value);
+                  // auto-fill the class from the roster when the secretary
+                  // picks a student — one less field to type (still editable)
+                  setForm((f) => ({ ...f, studentId: e.target.value, classLevel: s ? s.class_level : f.classLevel }));
+                }}
+              >
                 <option value="">—</option>
                 {roster.map((s) => (
                   <option key={s.id} value={s.id}>{s.name} ({s.class_level})</option>

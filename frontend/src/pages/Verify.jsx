@@ -24,21 +24,60 @@ export default function Verify({ feeId }) {
   const [state, setState] = useState("loading"); // loading | ok | notfound
   const [input, setInput] = useState("");
   const [toast, setToast] = useState("");
+  const [nonce, setNonce] = useState(0); // bump → re-verify (button, focus, poll)
+  const [checkedAt, setCheckedAt] = useState(null);
+  const [lastFeeId, setLastFeeId] = useState(null);
   const L = t[lang];
 
+  // fetch the trust-chain verdict. Keyed on feeId AND nonce, so the page can
+  // never show a stale result: re-visiting the same link, switching back to
+  // the tab, the poll tick, or the Re-check button all force a fresh check.
+  // Silent when re-checking (no skeleton flash); full skeleton only when the
+  // fee id itself changes.
   useEffect(() => {
     if (!feeId) return;
-    setData(null);
-    setState("loading");
+    let cancelled = false;
+    if (feeId !== lastFeeId) {
+      setData(null);
+      setState("loading");
+      setLastFeeId(feeId);
+    }
     publicApi
       .verifyReceipt(feeId)
       .then((r) => {
+        if (cancelled) return;
         if (r.status !== 200) throw new Error("not found");
         setData(r.json);
+        setCheckedAt(new Date());
         setState("ok");
       })
-      .catch(() => setState("notfound"));
-  }, [feeId]);
+      .catch(() => {
+        if (!cancelled) setState("notfound");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [feeId, nonce]);
+
+  // live verification: re-check every 5 s while the page is open, and
+  // immediately when the tab regains focus or becomes visible (a judge
+  // switching back to this tab must never look at an outdated verdict).
+  // Same-hash re-navigation fires no browser event at all, so the poll is
+  // the safety net that guarantees the shown verdict is at most 5 s old.
+  useEffect(() => {
+    const bump = () => setNonce((n) => n + 1);
+    const onVis = () => {
+      if (document.visibilityState === "visible") bump();
+    };
+    const iv = setInterval(bump, 5000);
+    window.addEventListener("focus", bump);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(iv);
+      window.removeEventListener("focus", bump);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
 
   const flash = (m) => {
     setToast(m);
@@ -113,6 +152,14 @@ export default function Verify({ feeId }) {
               </div>
               <div className="mono" style={{ fontSize: "0.8rem", color: "var(--ink-soft)", marginTop: 6 }}>
                 {data.feeId} · event {data.receipt.eventId.slice(0, 24)}…
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                <button className="btn ghost" style={{ fontSize: "0.8rem", padding: "4px 12px" }} onClick={() => setNonce((n) => n + 1)}>
+                  ⟳ {L.verifyRecheck}
+                </button>
+                <span style={{ fontSize: "0.75rem", color: "var(--ink-soft)" }}>
+                  ● {L.verifyLive} — {L.verifyLastCheck}: {checkedAt ? checkedAt.toLocaleTimeString() : "…"}
+                </span>
               </div>
             </div>
 

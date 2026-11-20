@@ -1,12 +1,15 @@
 # Jàngal — Test Report
 
-**Date:** 2026-11-20 · **Result: 148/148 checks passing (100%)** · Suites: unit 43/43 · smoke E2E 21/21 · extended E2E 84/84
+**Date:** 2026-11-20 · **Result: 148/148 automated checks + 13/13 browser-journey checks passing (100%)** · Suites: unit 43/43 · smoke E2E 21/21 · extended E2E 84/84 · browser journey 13/13
 
 ```
 $ make test            # one command: unit → fresh mock boot → smoke → extended e2e
 ✔ 43 passed, 0 failed   (unit-tests.js)
 ✔ 21 passed, 0 failed   (smoke.js)
 ✔ 84 passed, 0 failed   (e2e-full.js)
+
+$ python3 scripts/full-journey-definitive.py   # isolated fresh instance + real browser
+✔ 13/13 PASS             (Playwright: form → pay → proof → confirm → verify → assistant)
 ```
 
 The same suites run unchanged against the full Docker stack
@@ -57,6 +60,18 @@ The same suites run unchanged against the full Docker stack
    ≥100×200 in a full-suite run where earlier suites had consumed part of the
    per-minute window; the assertion now checks ≥40×200 + 429 present, which is
    the actual behaviour being verified.
+4. **Stale verdict on the public verifier (fixed).** Re-visiting the same
+   verify link inside the SPA fired no browser event, so the page could show
+   an outdated verdict (e.g. green while the photo had just been swapped).
+   The verifier now re-checks **live every 5 s**, on tab focus, on
+   visibility change, and on demand via a “Re-check now” button — the shown
+   verdict is at most 5 s old. Regression-tested at browser level: swapping
+   the proof photo flips an *open* verifier page to red by itself and back
+   to green after restore.
+5. **Fee form friction (fixed).** The class field defaulted to empty and was
+   required, silently blocking submission when left blank. The class now
+   auto-fills from the school roster when a student is selected (still
+   editable).
 
 ## 3. The trust chain (what the public verifier checks)
 
@@ -74,10 +89,37 @@ sha256(photo on disk today) == recorded hash   → photo never swapped
 
 Anyone can run these checks without an account: open
 `/#/verify/<fee_id>` (or `GET /api/public/receipt/<fee_id>`) — zero personal
-data is exposed (student initials only). Screenshot 13 in `docs/screenshots/`
-shows the verifier turning red when the evidence photo is tampered with.
+data is exposed (student initials only). Screenshots 13–14 in `docs/screenshots/`
+show the verifier turning red when the evidence photo is tampered with — and
+turning green again by itself (live re-check) after the photo is restored.
 
-## 4. Reproduce
+## 4. Browser-level journey (Playwright, 13/13)
+
+A real Chromium walks the entire product loop on a freshly-booted isolated
+instance, with **hard API-state assertions after every UI action** (no
+text-only matching — each step cross-checks the server):
+
+| # | Step | Assertion |
+|---|---|---|
+| 1 | School opens the fee form, picks a student | class auto-fills from roster |
+| 2 | Submits the form | `POST /api/fees` → fee exists, `awaiting_payment` |
+| 3 | Parent (fresh session) opens the app | the new fee card is visible |
+| 4 | Parent clicks ⚡ Pay | API status `locked`, escrow holds the funds |
+| 5 | School opens the locked fee | proof-upload control visible |
+| 6 | Attaches receipt photo | AI verdict + sha256 rendered |
+| 7 | — | Confirm button visible |
+| 8 | School confirms | API status `settled`, Nostr receipt emitted |
+| 9 | Receipts tab | receipt listed |
+| 10 | Opens receipt | share (WhatsApp) + verifier links |
+| 11 | Opens public verifier (logged out) | GREEN verdict + live re-check UI |
+| 12 | Asks the assistant a question | answer in French |
+| 13 | Whole run | zero page errors |
+
+Plus the dedicated live-tamper validation: an **open** verifier page flips to
+RED by itself (≤5 s) when the proof photo is swapped on disk, and back to
+GREEN when restored — no interaction with the browser at all.
+
+## 5. Reproduce
 
 ```bash
 make test                 # unit + smoke + extended e2e (mock LND), ~2 min

@@ -36,13 +36,16 @@ local** money flow than COD logistics; (b) our escrow closes a loop theirs
 leaves open: **AI-verified evidence anchored in the receipt** — Sésame lists
 diaspora support as *future work*, we ship the diaspora use case; (c) we run
 a real bitcoind + 2×LND stack in one command, not just wallet-side NWC;
-(d) **test-count gap closed: 148 automated checks vs their 144** — and ours go
+(d) **test-count gap closed and overtaken: 148 automated checks + a 13-step
+browser-level journey (real Chromium, hard API assertions after every click)
+vs their 144** — and ours go
 further than state transitions: RBAC matrix, auth-bypass attempts, concurrent
 confirm+reject races (exactly one wins), **live evidence-photo swap detection
-through the public verifier**, relay forgery rejection, rate-limit and load
+through the public verifier (an open page turns red by itself ≤5 s after a
+swap)**, relay forgery rejection, rate-limit and load
 behaviour (docs/test-report.md). **Action:** the pitch line is now "148
-automated checks including adversarial ones — we tested how it fails, not
-just that it works."
+automated checks including adversarial ones, plus a full browser journey —
+we tested how it fails, not just that it works."
 
 ## R3. Popular Choice is already lost (CircleSats ~22 votes)
 

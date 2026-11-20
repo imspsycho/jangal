@@ -9,7 +9,7 @@ Frais de scolarité verrouillés sur le Lightning Network — l'argent n'atteint
 que si elle confirme la scolarisation, sinon il est remboursé automatiquement.</p>
 
 <p align="center">
-  <img alt="stack" src="https://img.shields.io/badge/Bitcoin-Lightning-f7931a"> <img alt="LND" src="https://img.shields.io/badge/LND-hold%20invoices-blueviolet"> <img alt="Nostr" src="https://img.shields.io/badge/Nostr-signed%20receipts-8b5cf6"> <img alt="AI" src="https://img.shields.io/badge/AI-fee%20notes%20%2B%20Wolof%20assistant-green"> <img alt="langs" src="https://img.shields.io/badge/langues-Wolof%20%C2%B7%20FR%20%C2%B7%20EN-success"> <img alt="tests" src="https://img.shields.io/badge/tests-148%2F148%20passing-brightgreen">
+  <img alt="stack" src="https://img.shields.io/badge/Bitcoin-Lightning-f7931a"> <img alt="LND" src="https://img.shields.io/badge/LND-hold%20invoices-blueviolet"> <img alt="Nostr" src="https://img.shields.io/badge/Nostr-signed%20receipts-8b5cf6"> <img alt="AI" src="https://img.shields.io/badge/AI-fee%20notes%20%2B%20Wolof%20assistant-green"> <img alt="langs" src="https://img.shields.io/badge/langues-Wolof%20%C2%B7%20FR%20%C2%B7%20EN-success"> <img alt="tests" src="https://img.shields.io/badge/tests-148%20%2B%2013%20browser%20checks-brightgreen">
 </p>
 
 ---
@@ -81,7 +81,7 @@ cd frontend && npm run dev                   # vite dev server on :5173
 the entire product (escrow, proof photos, AI verdicts, Nostr receipts) works
 without any Lightning infrastructure. This is also how the hosted demo runs.
 
-### Tests — 148 automated checks
+### Tests — 148 automated checks + 13-step browser journey
 
 ```bash
 make test          # unit (43) + smoke E2E (21) + extended E2E (84) — ~2 min, no Docker
@@ -96,6 +96,12 @@ make test          # unit (43) + smoke E2E (21) + extended E2E (84) — ~2 min, 
   **evidence-photo swap detected by the public verifier**, XSS inertness,
   security headers, relay protocol + forged-event rejection, rate limiting,
   40-parallel load burst (118 ms)
+- **Browser journey (13/13, Playwright)** — a real Chromium walks the whole
+  product loop (form → pay → AI proof → confirm → receipt → public verifier →
+  assistant) on a fresh instance with hard API-state assertions after every
+  click; plus live-tamper validation (an open verifier page turns red by
+  itself when the photo is swapped, green again after restore — the verdict
+  is re-checked every 5 s)
 
 Full details and findings: [docs/test-report.md](docs/test-report.md)
 
