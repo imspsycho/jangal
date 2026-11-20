@@ -138,7 +138,7 @@ pilot is the next step", not "used by schools".
 Everything must be live before **Nov 20, 2026, 20:00 UTC**: repo pushed
 (public), hosted demo deployed and smoke-tested, video uploaded (YouTube
 unlisted or Loom), Devpost text pasted, team member added.
-**Mitigation:** SUBMISSION-KIT checklist with a minute-by-minute plan; buffer
+**Mitigation:** minute-by-minute submission checklist with buffer time;
 of 90 minutes before the deadline; Devpost "submit" button pressed early —
 edits are allowed until the deadline, late submissions are not.
 
@@ -166,7 +166,7 @@ team page accurate. The prize (sats) goes to the submitting participant.
    diaspora-facing tool (taste risk — countered by the emotional pitch and
    the "family in Pikine" beat in the video).
 2. We failed to get the live demo/video link in front of judges before the
-   deadline (process risk — SUBMISSION-KIT mitigates).
+   deadline (process risk — checklist mitigates).
 3. Sésame-style depth scoring where test count outweighs product breadth
    (countered in R2 framing).
 4. Mock-AI skepticism (R1) — deploy the AI-live variant if a key exists.
