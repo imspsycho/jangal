@@ -12,6 +12,8 @@ que si elle confirme la scolarisation, sinon il est remboursé automatiquement.<
   <img alt="stack" src="https://img.shields.io/badge/Bitcoin-Lightning-f7931a"> <img alt="LND" src="https://img.shields.io/badge/LND-hold%20invoices-blueviolet"> <img alt="Nostr" src="https://img.shields.io/badge/Nostr-signed%20receipts-8b5cf6"> <img alt="AI" src="https://img.shields.io/badge/AI-fee%20notes%20%2B%20Wolof%20assistant-green"> <img alt="langs" src="https://img.shields.io/badge/langues-Wolof%20%C2%B7%20FR%20%C2%B7%20EN-success"> <img alt="tests" src="https://img.shields.io/badge/tests-148%20%2B%2013%20browser%20checks-brightgreen">
 </p>
 
+**🎬 3-min demo video:** https://youtu.be/fGDln6mZ5yo · **Presentation page:** https://imspsycho.github.io/jangal/ · **Run it:** `docker compose up --build` (see [DEPLOY.md](DEPLOY.md))
+
 ---
 
 ## The problem

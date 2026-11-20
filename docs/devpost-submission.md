@@ -116,7 +116,8 @@ adapter: GLM/GPT/Groq or deterministic mock), Docker Compose.
 ### Links
 
 - Repo: https://github.com/imspsycho/jangal
-- Live demo: see DEPLOY.md (Render one-click via render.yaml, LND_MODE=mock) or `docker compose up` for the real bitcoind + LND regtest stack
+- Presentation page: https://imspsycho.github.io/jangal/ (video, product walkthrough, impact)
+- Live demo: Render one-click via render.yaml (LND_MODE=mock), or `docker compose up` for the real bitcoind + LND regtest stack
 - Video: https://youtu.be/fGDln6mZ5yo (3-min demo, includes the live tamper-detection beat)
 
 ## Submission checklist (before Nov 20, 8:00 PM UTC)
