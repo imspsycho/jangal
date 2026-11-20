@@ -179,7 +179,9 @@ Numbers: [docs/impact.md](docs/impact.md)
 ├── docker-compose.yml      # bitcoind + lnd-school + lnd-parent + app
 ├── backend/                # Fastify API, LND client, Nostr relay, AI, seed, smoke test
 ├── frontend/               # React PWA (Vite, no UI kit, 63 KB gzipped)
-└── docs/                   # architecture, threat model, impact, video script, submission
+├── scripts/demo-video/     # reproducible demo-video pipeline (Playwright + ffmpeg)
+├── docs/                   # architecture, threat model, impact, video script, submission
+└── docs/demo-video.mp4     # the 3-minute demo video (also at repo root)
 ```
 
 ## License

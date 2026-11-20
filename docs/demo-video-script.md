@@ -1,5 +1,10 @@
 # Jàngal — 3-minute demo video script
 
+> **RECORDED ✅** — the final video is **`docs/demo-video.mp4`** (3 min 19 s,
+> 1080p, English narration). It was rendered by the reproducible pipeline in
+> `scripts/demo-video/` — this script was its storyboard. The checklist below
+> is kept for reference / re-shoots.
+
 **Format**: screen recording (phone-size window 390×844 for the PWA, then the
 terminal for the one-command setup). Speak French or English; show Wolof UI at
 least once. Target: 2:45–3:00.
